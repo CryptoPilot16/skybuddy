@@ -1040,19 +1040,22 @@ async function fetchAircraft() {
         { lat: 35, lon: 140 },    // East Asia / Pacific
       ];
       const allResults = {};
-      const fetches = searchPoints.map(async (pt) => {
+      // Query both ADSB.lol and airplanes.live for maximum coverage
+      const fetches = searchPoints.flatMap((pt) => [
+        fetch(`/api/adsb/v2/lat/${pt.lat}/lon/${pt.lon}/dist/12000`).catch(() => null),
+        fetch(`https://api.airplanes.live/v2/point/${pt.lat}/${pt.lon}/250`).catch(() => null),
+      ]);
+      const responses = await Promise.all(fetches);
+      for (const resp of responses) {
         try {
-          const resp = await fetch(`/api/adsb/v2/lat/${pt.lat}/lon/${pt.lon}/dist/12000`);
-          if (!resp.ok) return;
+          if (!resp || !resp.ok) continue;
           const data = await resp.json();
-          const parsed = parseAdsbLolData(data);
-          // Only keep aircraft that pass watchlist
+          const parsed = parseAdsbLolData(data); // same format
           Object.entries(parsed).forEach(([icao, ac]) => {
             if (passesWatchlist(ac)) allResults[icao] = ac;
           });
-        } catch (e) { console.warn('Watchlist search failed for point', pt, e); }
-      });
-      await Promise.all(fetches);
+        } catch (e) { /* skip failed response */ }
+      }
 
       document.getElementById('pulseDot').style.background = Object.keys(allResults).length > 0 ? 'var(--accent)' : 'var(--warn)';
       const now = new Date();
@@ -1121,6 +1124,25 @@ async function fetchAircraft() {
       document.getElementById('acCount').textContent = Object.keys(newData).length;
       document.getElementById('dataSource').textContent = source === 'opensky' ? 'OPENSKY' : 'ADSB.LOL';
       stats.totalTracked = Math.max(stats.totalTracked, Object.keys(newData).length);
+
+      // Also fetch from airplanes.live and merge for better coverage
+      if (rect) {
+        try {
+          const cLat = Cesium.Math.toDegrees((rect.north + rect.south) / 2);
+          const cLon = Cesium.Math.toDegrees((rect.east + rect.west) / 2);
+          const dist = Math.min(250, Math.round(haversineDistance(
+            Cesium.Math.toDegrees(rect.south), cLon, Cesium.Math.toDegrees(rect.north), cLon) / 2));
+          const apResp = await fetch(`https://api.airplanes.live/v2/point/${cLat.toFixed(1)}/${cLon.toFixed(1)}/${dist}`);
+          if (apResp.ok) {
+            const apData = await apResp.json();
+            const apParsed = parseAdsbLolData(apData);
+            // Merge — airplanes.live data fills gaps
+            Object.entries(apParsed).forEach(([icao, ac]) => {
+              if (!newData[icao]) newData[icao] = ac;
+            });
+          }
+        } catch (e) { /* airplanes.live supplement failed, no problem */ }
+      }
 
       aircraftData = newData;
       updateGlobe();
