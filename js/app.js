@@ -919,7 +919,7 @@ function saveSettings() {
 function handleKeyboard(e) {
   if (e.target.tagName === 'INPUT') return;
   const key = e.key;
-  if (key === 'R') { cycleRouteMode(); return; }
+  if (key === 'R') { refreshData(); return; }
   switch (e.key.toLowerCase()) {
     case 'l': toggleLabels(); break;
     case 't': togglePaths(); break;
@@ -1062,7 +1062,7 @@ async function fetchAircraft() {
       prefetchRoutes();
       if (selectedAc && aircraftData[selectedAc]) {
         updateDetailPanel(aircraftData[selectedAc]);
-        if (showRoutes) drawAllRoutes();
+        clearRouteProjection(); drawRouteForAircraft(aircraftData[selectedAc]);
         checkWebcamProximity(aircraftData[selectedAc]);
       }
       if (Object.keys(allResults).length === 0) {
@@ -1125,7 +1125,7 @@ async function fetchAircraft() {
 
       if (selectedAc && aircraftData[selectedAc]) {
         updateDetailPanel(aircraftData[selectedAc]);
-        if (showRoutes) drawAllRoutes();
+        clearRouteProjection(); drawRouteForAircraft(aircraftData[selectedAc]);
         checkWebcamProximity(aircraftData[selectedAc]);
       }
       return; // success
@@ -1319,35 +1319,35 @@ async function drawRouteForAircraft(ac, color) {
     routeEntities.push(groundLine);
   }
 
-  // Airport markers for each waypoint
+  // Airport markers — just ICAO code, no verbose labels
   waypoints.forEach((wp, idx) => {
     if (!wp.icao) return;
     const isOrigin = idx === 0;
     const isDest = idx === waypoints.length - 1;
     const markerColor = isOrigin ? '#00ff88' : isDest ? '#DAA520' : '#00b4d8';
-    const label = isOrigin ? 'ORIGIN' : isDest ? 'DEST' : 'STOP';
 
     const marker = viewer.entities.add({
       position: Cesium.Cartesian3.fromDegrees(wp.lon, wp.lat, 100),
       point: {
-        pixelSize: isDest || isOrigin ? 8 : 6,
+        pixelSize: 7,
         color: Cesium.Color.fromCssColorString(markerColor),
         outlineColor: Cesium.Color.WHITE,
-        outlineWidth: 2,
+        outlineWidth: 1,
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
       },
       label: {
-        text: `${wp.icao} ${label}`,
-        font: '10px JetBrains Mono',
+        text: wp.icao,
+        font: '9px JetBrains Mono',
         fillColor: Cesium.Color.fromCssColorString(markerColor),
         outlineColor: Cesium.Color.BLACK,
         outlineWidth: 2,
         style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-        pixelOffset: new Cesium.Cartesian2(0, -18),
+        pixelOffset: new Cesium.Cartesian2(10, 0),
+        horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
-        backgroundColor: Cesium.Color.fromCssColorString('rgba(0,0,0,0.7)'),
+        backgroundColor: Cesium.Color.fromCssColorString('rgba(0,0,0,0.6)'),
         showBackground: true,
-        backgroundPadding: new Cesium.Cartesian2(6, 3),
+        backgroundPadding: new Cesium.Cartesian2(4, 2),
       },
     });
     routeEntities.push(marker);
