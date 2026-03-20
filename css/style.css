@@ -92,6 +92,16 @@ body {
 .logo .sep { color: var(--text-dim); font-weight: 300; }
 .logo .sub { color: var(--text-dim); font-weight: 400; font-size: 10px; letter-spacing: 1px; }
 
+.top-controls {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.top-controls .ctrl-btn {
+  padding: 2px 10px;
+  font-size: 9px;
+}
+
 .status-cluster {
   display: flex;
   align-items: center;
@@ -426,13 +436,7 @@ body {
 
 /* ─── Bottom Controls ─── */
 .bottom-bar {
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 4px;
-  z-index: 10;
+  display: none;
 }
 .ctrl-btn {
   padding: 6px 12px;
@@ -972,8 +976,20 @@ body {
   border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
+  cursor: grab;
 }
 .minimap-header::before { content: '// '; color: var(--accent); opacity: 0.4; }
+.minimap-resize-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 10px;
+  line-height: 1;
+  padding: 0 4px;
+  margin: 0 1px;
+  cursor: pointer;
+}
+.minimap-resize-btn:hover { color: var(--accent); border-color: var(--accent); }
 .minimap-header .minimap-count { color: var(--accent); }
 .minimap-canvas {
   width: 100%;
@@ -1199,32 +1215,16 @@ body {
     min-width: 36px; min-height: 36px;
   }
 
-  /* Control bar: moved to top on mobile */
-  .bottom-bar {
-    top: 36px; bottom: auto;
-    left: 0; right: 0;
-    transform: none;
-    padding: 4px 6px;
-    gap: 3px;
-    overflow-x: visible;
-    background: rgba(10, 12, 16, 0.9);
-    border-bottom: 1px solid var(--border);
-    border-top: none;
-    z-index: 55;
-    justify-content: space-evenly;
-    flex-wrap: nowrap;
+  /* Top controls inline on mobile */
+  .top-controls {
+    gap: 2px;
   }
-  .btn-icon { display: none; }
-  .btn-label { display: inline; font-size: 9px; letter-spacing: 0.5px; }
-  .ctrl-btn {
-    padding: 8px 6px;
-    font-size: 9px;
-    min-height: 32px;
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .top-controls .ctrl-btn {
+    padding: 2px 6px;
+    font-size: 8px;
+    min-height: 28px;
   }
+  .bottom-bar { display: none; }
 
   /* Toggle button: larger for mobile */
   .toggle-panel-btn {
@@ -1342,11 +1342,11 @@ body {
   .webcam-title { font-size: 11px; }
   .webcam-btn { min-height: 32px; min-width: 32px; font-size: 12px; padding: 4px 8px; }
 
-  /* Schedule panel: full-width on mobile, below control bar, no drag */
+  /* Schedule panel: full-width on mobile, below top bar, no drag */
   .schedule-panel {
     width: 100%; right: 0; left: 0;
-    top: 72px;
-    max-height: 60vh;
+    top: 36px;
+    max-height: 40vh;
     border: none; border-top: 1px solid var(--border);
     z-index: 70;
     -webkit-overflow-scrolling: touch;
@@ -1364,9 +1364,9 @@ body {
   .sched-remove { font-size: 12px; padding: 4px 8px; min-width: 32px; }
   .sched-locate { font-size: 11px; padding: 6px 12px; min-height: 36px; }
 
-  /* Flight banner: prominent strip below control bar on mobile */
+  /* Flight banner: prominent strip below top bar on mobile */
   .flight-banner {
-    top: 72px; left: 0; right: 0;
+    top: 36px; left: 0; right: 0;
     min-width: auto;
     padding: 10px 14px 12px;
     border-left: none;

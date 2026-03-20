@@ -2667,7 +2667,7 @@ async function drawConflicts() {
           pixelOffset: new Cesium.Cartesian2(0, 0),
           scaleByDistance: new Cesium.NearFarScalar(1e5, 1.4, 1.5e7, 0.5),
           translucencyByDistance: new Cesium.NearFarScalar(1e5, 1.0, 2e7, 0.3),
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          disableDepthTestDistance: 0,
           show: true,
           backgroundColor: Cesium.Color.fromCssColorString('rgba(0,0,0,0.75)'),
           showBackground: true,
@@ -3130,6 +3130,21 @@ function renderMinimap() {
   }
 }
 
+// Minimap resize
+const MINIMAP_SIZES = [
+  { w: 280, h: 160 },
+  { w: 380, h: 220 },
+  { w: 480, h: 280 },
+  { w: 640, h: 380 },
+];
+let minimapSizeIdx = 2; // default 480x280
+function resizeMinimap(dir) {
+  minimapSizeIdx = Math.max(0, Math.min(MINIMAP_SIZES.length - 1, minimapSizeIdx + dir));
+  const s = MINIMAP_SIZES[minimapSizeIdx];
+  const c = document.getElementById('minimapContainer');
+  if (c) { c.style.width = s.w + 'px'; c.style.height = s.h + 'px'; }
+}
+
 // Update minimap every 2 seconds
 setInterval(() => { if (minimapCtx) renderMinimap(); }, 2000);
 
@@ -3188,4 +3203,5 @@ document.addEventListener('DOMContentLoaded', () => {
   makeDraggable('.watchlist-panel', '.wl-header');
   makeDraggable('.settings-panel', '.settings-panel .panel-header');
   makeDraggable('.detail-panel', '.detail-header');
+  makeDraggable('.minimap-container', '.minimap-header');
 });

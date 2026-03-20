@@ -44,6 +44,13 @@
     <div class="logo">
       SKYBUDDY <span class="sep">//</span> <span class="sub">3D FLIGHT TRACKER</span>
     </div>
+    <div class="top-controls">
+      <button class="ctrl-btn" id="btnOthers" onclick="toggleOtherPlanes()"><span class="btn-label">Others</span></button>
+      <button class="ctrl-btn" id="btnWatchlist" onclick="toggleWatchlistPanel()"><span class="btn-label">Watchlist</span></button>
+      <button class="ctrl-btn" id="btnLabels" onclick="toggleLabels()"><span class="btn-label">Labels</span></button>
+      <button class="ctrl-btn" id="btnConflicts" onclick="toggleConflicts()"><span class="btn-label">Conflicts</span></button>
+      <button class="ctrl-btn" onclick="refreshData()"><span class="btn-label">Refresh</span></button>
+    </div>
     <div class="status-cluster">
       <div class="stat">
         <span class="stat-label">Aircraft</span>
@@ -141,16 +148,6 @@
     <div class="sched-header">
       <span class="sched-title">MY SCHEDULE</span>
     </div>
-    <div class="sched-add-row">
-      <input type="text" class="sched-input" id="schedFlight" placeholder="Callsign (CKS401)">
-      <input type="text" class="sched-input sched-input-sm" id="schedDep" placeholder="DEP">
-      <input type="text" class="sched-input sched-input-sm" id="schedArr" placeholder="ARR">
-    </div>
-    <div class="sched-add-row">
-      <input type="datetime-local" class="sched-input sched-input-dt" id="schedTime">
-      <label class="sched-onboard-label"><input type="checkbox" id="schedOnboard"> I'm onboard</label>
-      <button class="wl-add-btn" onclick="addScheduleEntry()">+</button>
-    </div>
     <div class="sched-import-row">
       <input type="file" id="schedScreenshot" accept="image/*" style="display:none" onchange="importScheduleScreenshot(this)">
       <button class="wl-toggle-btn sched-import-btn" onclick="document.getElementById('schedScreenshot').click()">Import from Image</button>
@@ -214,17 +211,10 @@
 
   <!-- Minimap -->
   <div class="minimap-container" id="minimapContainer">
-    <div class="minimap-header">GLOBAL VIEW <span class="minimap-count" id="minimapCount">0</span></div>
+    <div class="minimap-header">GLOBAL VIEW <span style="flex:1"></span><button class="minimap-resize-btn" onclick="resizeMinimap(-1)" title="Shrink">−</button><button class="minimap-resize-btn" onclick="resizeMinimap(1)" title="Grow">+</button><span class="minimap-count" id="minimapCount">0</span></div>
     <canvas class="minimap-canvas" id="minimapCanvas" width="640" height="360"></canvas>
   </div>
 
-  <!-- Bottom Controls -->
-  <div class="bottom-bar">
-    <button class="ctrl-btn" id="btnOthers" onclick="toggleOtherPlanes()"><span class="btn-icon">👁</span><span class="btn-label">Others</span></button>
-    <button class="ctrl-btn" id="btnLabels" onclick="toggleLabels()"><span class="btn-icon">Aa</span><span class="btn-label">Labels</span></button>
-    <button class="ctrl-btn" id="btnConflicts" onclick="toggleConflicts()"><span class="btn-icon">⚠</span><span class="btn-label">Conflicts</span></button>
-    <button class="ctrl-btn" onclick="refreshData()"><span class="btn-icon">↻</span><span class="btn-label">Refresh</span></button>
-  </div>
 </div>
 
 <!-- Setup Panel (hidden, credentials loaded from localStorage) -->
