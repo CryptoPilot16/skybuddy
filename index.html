@@ -79,8 +79,10 @@
 
   <!-- Detail Panel: Selected Aircraft -->
   <div class="detail-panel" id="detailPanel">
-    <button class="detail-minimize" onclick="toggleDetailMinimize()">▾</button>
-    <button class="detail-close" onclick="closeDetail()">✕</button>
+    <div class="detail-header" id="detailHeader">
+      <button class="detail-minimize" onclick="toggleDetailMinimize()">▾</button>
+      <button class="detail-close" onclick="closeDetail()">✕</button>
+    </div>
     <div class="detail-callsign" id="detCallsign">---</div>
     <div class="detail-country" id="detCountry">---</div>
     <div class="detail-grid">

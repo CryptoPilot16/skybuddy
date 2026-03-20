@@ -320,9 +320,19 @@ body {
 }
 .detail-panel.visible { display: block; }
 
+.detail-header {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  margin: -12px -12px 6px -12px;
+  padding: 4px 8px;
+  cursor: grab;
+  user-select: none;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0, 255, 136, 0.02);
+}
+.detail-header:active { cursor: grabbing; }
 .detail-close {
-  position: absolute;
-  top: 6px; right: 8px;
   background: none; border: none;
   color: var(--text-dim);
   font-size: 14px;
@@ -530,6 +540,12 @@ body {
   z-index: 70;
   overflow: hidden;
 }
+.settings-panel .panel-header {
+  cursor: grab;
+  user-select: none;
+}
+.settings-panel .panel-header:active { cursor: grabbing;
+}
 .settings-panel.visible { display: block; }
 .settings-panel .input-group { padding: 6px 12px; }
 .settings-panel .input-group label {
@@ -567,7 +583,7 @@ body {
 .watchlist-panel {
   position: absolute;
   top: 46px;
-  right: 336px;
+  right: 340px;
   width: 280px;
   background: var(--panel);
   border: 1px solid var(--border);
@@ -575,6 +591,8 @@ body {
   display: none;
   z-index: 60;
   overflow: hidden;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
 }
 .watchlist-panel.visible { display: block; }
 .wl-header {
@@ -582,7 +600,10 @@ body {
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; gap: 6px;
   background: rgba(0, 255, 136, 0.02);
+  cursor: grab;
+  user-select: none;
 }
+.wl-header:active { cursor: grabbing; }
 .wl-title {
   font-size: 9px; text-transform: uppercase; letter-spacing: 2px;
   color: var(--text-dim); flex: 1;
@@ -653,6 +674,8 @@ body {
   display: none;
   z-index: 60;
   overflow: hidden;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
 }
 .schedule-panel.visible { display: block; }
 .sched-header {
@@ -660,7 +683,10 @@ body {
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; gap: 6px;
   background: rgba(218, 165, 32, 0.04);
+  cursor: grab;
+  user-select: none;
 }
+.sched-header:active { cursor: grabbing; }
 .sched-title {
   font-size: 9px; text-transform: uppercase; letter-spacing: 2px;
   color: var(--text-dim); flex: 1;

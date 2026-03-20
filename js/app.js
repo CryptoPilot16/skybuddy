@@ -2598,9 +2598,59 @@ function renderMinimap() {
 // Update minimap every 2 seconds
 setInterval(() => { if (minimapCtx) renderMinimap(); }, 2000);
 
+// ─── Draggable Panels ───
+function makeDraggable(panelSelector, handleSelector) {
+  const panel = document.querySelector(panelSelector);
+  const handle = document.querySelector(handleSelector);
+  if (!panel || !handle) return;
+
+  let dragging = false, startX, startY, origLeft, origTop;
+
+  function onStart(e) {
+    // Don't drag if clicking a button/input inside the header
+    if (e.target.closest('button, input, .close-btn')) return;
+    dragging = true;
+    const touch = e.touches ? e.touches[0] : e;
+    startX = touch.clientX;
+    startY = touch.clientY;
+    const rect = panel.getBoundingClientRect();
+    origLeft = rect.left;
+    origTop = rect.top;
+    // Switch to left/top positioning for dragging
+    panel.style.left = origLeft + 'px';
+    panel.style.top = origTop + 'px';
+    panel.style.right = 'auto';
+    e.preventDefault();
+  }
+
+  function onMove(e) {
+    if (!dragging) return;
+    const touch = e.touches ? e.touches[0] : e;
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+    panel.style.left = Math.max(0, origLeft + dx) + 'px';
+    panel.style.top = Math.max(0, origTop + dy) + 'px';
+  }
+
+  function onEnd() {
+    dragging = false;
+  }
+
+  handle.addEventListener('mousedown', onStart);
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onEnd);
+  handle.addEventListener('touchstart', onStart, { passive: false });
+  document.addEventListener('touchmove', onMove, { passive: false });
+  document.addEventListener('touchend', onEnd);
+}
+
 // ─── Init on Load ───
 document.addEventListener('DOMContentLoaded', () => {
   tryAutoLogin();
   initMinimap();
   initWebcamDrag();
+  makeDraggable('.schedule-panel', '.sched-header');
+  makeDraggable('.watchlist-panel', '.wl-header');
+  makeDraggable('.settings-panel', '.settings-panel .panel-header');
+  makeDraggable('.detail-panel', '.detail-header');
 });
