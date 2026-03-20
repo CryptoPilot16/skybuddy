@@ -1100,26 +1100,16 @@ body {
 
 /* ─── Responsive: Mobile ─── */
 @media (max-width: 480px) {
-  /* Top bar: ultra compact */
+  /* Top bar: logo + controls only, no stats */
   .top-bar { height: 36px; padding: 0 6px; }
   .logo { font-size: 10px; letter-spacing: 1px; gap: 4px; }
   .logo .sub { display: none; }
   .logo .sep { display: none; }
-  .status-cluster { gap: 4px; font-size: 9px; }
-  .stat-label { display: none; }
-  .stat-value { font-size: 10px; }
-  .settings-btn {
-    font-size: 18px;
-    min-width: 36px; min-height: 36px;
-    display: flex; align-items: center; justify-content: center;
-    padding: 0;
-  }
-  .compass-btn {
-    font-size: 11px;
-    min-width: 36px; min-height: 36px;
-    display: flex; align-items: center; justify-content: center;
-    padding: 0;
-  }
+  /* Hide status cluster on mobile — too crowded */
+  .status-cluster { display: none; }
+  .compass-btn { display: none; }
+  /* Hide hamburger — OTHERS button handles the side panel */
+  .toggle-panel-btn { display: none !important; }
 
   /* Side panel: full-width slide-in drawer */
   .side-panel {
@@ -1133,7 +1123,6 @@ body {
   .side-panel.hidden { transform: translateX(-100%); }
   .search-box {
     font-size: 16px; padding: 12px;
-    /* prevent iOS zoom on focus */
     -webkit-text-size-adjust: 100%;
   }
   .ac-item {
@@ -1236,15 +1225,17 @@ body {
     display: flex; align-items: center; justify-content: center;
   }
 
-  /* Minimap: compact corner widget */
+  /* Minimap: full-width fixed band below globe */
   .minimap-container {
     display: block;
-    width: 140px; height: 85px;
-    bottom: 8px; left: 4px;
+    position: fixed;
+    width: 100%; height: 150px;
+    bottom: 0; left: 0;
     z-index: 50;
-    opacity: 0.85;
+    opacity: 0.95;
+    border-top: 1px solid var(--border);
   }
-  .minimap-header { font-size: 6px; padding: 1px 4px; }
+  .minimap-header { font-size: 7px; padding: 2px 6px; }
   .minimap-canvas { image-rendering: auto; }
 
   /* Watchlist panel: full width bottom sheet */
@@ -1344,20 +1335,21 @@ body {
   .webcam-title { font-size: 11px; }
   .webcam-btn { min-height: 32px; min-width: 32px; font-size: 12px; padding: 4px 8px; }
 
-  /* Schedule panel: full-width on mobile, below top bar, no drag */
+  /* Schedule panel: fixed at bottom, below minimap, scrollable */
   .schedule-panel {
+    position: fixed;
     width: 100%; right: 0; left: 0;
-    top: 36px;
-    max-height: 40vh;
-    border: none; border-top: 1px solid var(--border);
-    z-index: 70;
+    top: auto; bottom: 0;
+    max-height: 50vh;
+    overflow-y: auto;
+    border: none; border-top: 1px solid var(--accent);
+    z-index: 55;
     -webkit-overflow-scrolling: touch;
     cursor: default;
   }
   .schedule-panel .sched-header { cursor: default; }
-  /* Hide manual add rows on mobile — image import only */
   .schedule-panel .sched-add-row { display: none !important; }
-  .sched-items { max-height: 45vh; overflow-y: auto; flex: 1; }
+  .sched-items { max-height: none; overflow-y: auto; flex: 1; }
   .sched-import-btn { min-height: 44px !important; font-size: 11px !important; }
   .sched-item { padding: 10px; }
   .sched-flight { font-size: 15px; }
