@@ -22,6 +22,7 @@ let altFilterMin = 0;
 let altFilterMax = 50000;
 let dataSourceMode = 'opensky'; // 'opensky' | 'adsbx'
 let failedSources = new Set();
+let globeFilter = ''; // search filter applied to globe entities too
 
 // ─── Config ───
 const CONFIG = {
@@ -192,7 +193,11 @@ function initApp() {
     });
 
     refreshInterval = setInterval(fetchAircraft, CONFIG.REFRESH_INTERVAL);
-    document.getElementById('searchBox').addEventListener('input', renderAircraftList);
+    document.getElementById('searchBox').addEventListener('input', () => {
+      globeFilter = (document.getElementById('searchBox').value || '').toUpperCase();
+      updateGlobe();
+      renderAircraftList();
+    });
 
     // Keyboard shortcuts
     document.addEventListener('keydown', handleKeyboard);
@@ -206,11 +211,11 @@ function initApp() {
 // ─── Auto-login ───
 function tryAutoLogin() {
   const creds = loadCredentials();
-  if (creds.token) {
-    document.getElementById('cesiumToken').value = creds.token;
-    document.getElementById('osUser').value = creds.user;
-    document.getElementById('osPass').value = creds.pass;
-  }
+  // Priority: localStorage > env.js
+  const token = creds.token || (window.ENV && window.ENV.CESIUM_ION_TOKEN) || '';
+  if (token) document.getElementById('cesiumToken').value = token;
+  if (creds.user) document.getElementById('osUser').value = creds.user;
+  if (creds.pass) document.getElementById('osPass').value = creds.pass;
 }
 
 // ─── Keyboard Shortcuts ───
@@ -395,8 +400,8 @@ function updateGlobe() {
   Object.values(aircraftData).forEach(ac => {
     if (ac.lat == null || ac.lon == null) return;
 
-    // Altitude filter: hide entities that don't pass
-    if (!passesAltFilter(ac)) {
+    // Filter: hide entities that don't pass altitude or search filter
+    if (!passesAltFilter(ac) || !passesGlobeFilter(ac)) {
       if (aircraftEntities[ac.icao]) {
         viewer.entities.remove(aircraftEntities[ac.icao]);
         delete aircraftEntities[ac.icao];
@@ -679,6 +684,13 @@ function passesAltFilter(ac) {
   if (altFilterMin === 0 && altFilterMax === 50000) return true;
   const ft = mToFt(ac.alt || ac.geoAlt || 0);
   return ft >= altFilterMin && ft <= altFilterMax;
+}
+
+function passesGlobeFilter(ac) {
+  if (!globeFilter) return true;
+  return (ac.callsign && ac.callsign.toUpperCase().includes(globeFilter)) ||
+    ac.icao.toUpperCase().includes(globeFilter) ||
+    ac.country.toUpperCase().includes(globeFilter);
 }
 
 // ─── Flight Prediction ───
