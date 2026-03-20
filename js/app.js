@@ -641,9 +641,9 @@ function updateGlobe() {
         orientation: orientation,
         model: {
           uri: modelUri,
-          minimumPixelSize: 48,
-          maximumScale: 200,
-          scale: 1.0,
+          minimumPixelSize: 64,
+          maximumScale: 500,
+          scale: 3.0,
           silhouetteColor: Cesium.Color.fromCssColorString('#00ff88').withAlpha(0.5),
           silhouetteSize: 2.0,
         },
@@ -737,20 +737,20 @@ function selectAircraft(icao) {
   btn.textContent = trackingAc === icao ? '■ STOP TRACKING' : '◎ TRACK AIRCRAFT';
   btn.classList.toggle('tracking', trackingAc === icao);
 
-  // Fly to aircraft from behind and above
+  // Fly to aircraft — close chase-cam view
   const alt = ac.alt || ac.geoAlt || 5000;
   const hdg = ac.heading || 0;
   const hdgRad = Cesium.Math.toRadians(hdg);
-  // Position camera ~2km behind the aircraft
-  const offsetDist = 0.02; // ~2km in degrees
+  // Position camera ~300m behind and slightly above
+  const offsetDist = 0.003;
   const camLat = ac.lat - Math.cos(hdgRad) * offsetDist;
   const camLon = ac.lon - Math.sin(hdgRad) * offsetDist;
 
   viewer.camera.flyTo({
-    destination: Cesium.Cartesian3.fromDegrees(camLon, camLat, alt + 500),
+    destination: Cesium.Cartesian3.fromDegrees(camLon, camLat, alt + 100),
     orientation: {
       heading: Cesium.Math.toRadians(hdg),
-      pitch: Cesium.Math.toRadians(-15),
+      pitch: Cesium.Math.toRadians(-8),
       roll: 0,
     },
     duration: CONFIG.FLY_DURATION,
@@ -798,21 +798,21 @@ function zoomToAircraft() {
   const ac = aircraftData[selectedAc];
   const alt = ac.alt || ac.geoAlt || 1000;
   const hdg = ac.heading || 0;
-
-  // Position camera behind and slightly above the aircraft
-  const offsetDist = 0.003; // ~300m behind in degrees
   const hdgRad = Cesium.Math.toRadians(hdg);
+
+  // Position camera close behind and slightly above — chase cam view
+  const offsetDist = 0.001; // ~100m behind
   const behindLat = ac.lat - Math.cos(hdgRad) * offsetDist;
   const behindLon = ac.lon - Math.sin(hdgRad) * offsetDist;
 
   viewer.camera.flyTo({
-    destination: Cesium.Cartesian3.fromDegrees(behindLon, behindLat, alt + 150),
+    destination: Cesium.Cartesian3.fromDegrees(behindLon, behindLat, alt + 50),
     orientation: {
       heading: Cesium.Math.toRadians(hdg),
-      pitch: Cesium.Math.toRadians(-10),
+      pitch: Cesium.Math.toRadians(-5),
       roll: 0,
     },
-    duration: 1.5,
+    duration: 1.2,
   });
 }
 
