@@ -421,12 +421,24 @@ function updateGlobe() {
       }
     }
 
+    const hdgRad = Cesium.Math.toRadians(ac.heading || 0);
+    const pitchRad = ac.vertRate ? Cesium.Math.toRadians(Math.max(-30, Math.min(30, ac.vertRate * 3))) : 0;
+    const orientation = Cesium.Transforms.headingPitchRollQuaternion(
+      position,
+      new Cesium.HeadingPitchRoll(hdgRad, pitchRad, 0)
+    );
+
     if (aircraftEntities[ac.icao]) {
       const entity = aircraftEntities[ac.icao];
       entity.position = position;
-      entity.point.color = ac.onGround
-        ? Cesium.Color.fromCssColorString('#5a6a7a')
-        : altitudeColor(alt);
+      entity.orientation = orientation;
+
+      // Update model color based on altitude
+      if (entity.model) {
+        entity.model.color = ac.onGround
+          ? Cesium.Color.fromCssColorString('#5a6a7a').withAlpha(0.9)
+          : altitudeColor(alt).withAlpha(0.95);
+      }
 
       if (entity.label) {
         entity.label.show = showLabels && !!ac.callsign;
@@ -446,15 +458,19 @@ function updateGlobe() {
     } else {
       const entity = viewer.entities.add({
         position: position,
-        point: {
-          pixelSize: 5,
+        orientation: orientation,
+        model: {
+          uri: 'assets/airplane.glb',
+          minimumPixelSize: 24,
+          maximumScale: 20000,
+          scale: 500,
           color: ac.onGround
-            ? Cesium.Color.fromCssColorString('#5a6a7a')
-            : altitudeColor(alt),
-          outlineColor: Cesium.Color.fromCssColorString('rgba(0,0,0,0.5)'),
-          outlineWidth: 1,
-          scaleByDistance: new Cesium.NearFarScalar(1e4, 2.0, 1e7, 0.5),
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            ? Cesium.Color.fromCssColorString('#5a6a7a').withAlpha(0.9)
+            : altitudeColor(alt).withAlpha(0.95),
+          colorBlendMode: Cesium.ColorBlendMode.MIX,
+          colorBlendAmount: 0.6,
+          silhouetteColor: Cesium.Color.fromCssColorString('#00ff88').withAlpha(0.3),
+          silhouetteSize: 1.0,
         },
         label: {
           text: ac.callsign || ac.icao,
@@ -463,7 +479,7 @@ function updateGlobe() {
           outlineColor: Cesium.Color.BLACK,
           outlineWidth: 2,
           style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-          pixelOffset: new Cesium.Cartesian2(12, -4),
+          pixelOffset: new Cesium.Cartesian2(20, -10),
           scaleByDistance: new Cesium.NearFarScalar(1e4, 1.0, 5e6, 0.0),
           show: showLabels && !!ac.callsign,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
