@@ -1,92 +1,78 @@
 # SKYBUDDY — 3D Flight Tracker
 
-Real-time 3D flight tracking on an interactive globe with terrain visualization.
+Real-time 3D flight tracking on an interactive globe. Track specific airlines, view aircraft as type-matched 3D models, and monitor live ADS-B data worldwide.
 
 **Live:** [skybuddy.clawnux.com](https://skybuddy.clawnux.com)
 
-Powered by [Cesium.js](https://cesium.com) + [OpenSky Network](https://opensky-network.org) + [ADSB.lol](https://adsb.lol)
-
 ## Features
 
-- **3D Globe** — Full terrain rendering with day/night lighting, atmosphere, and fog
-- **Live Aircraft Data** — Real-time positions with 10s auto-refresh
-- **Dual Data Sources** — OpenSky Network (primary) with automatic ADSB.lol fallback on rate limiting
-- **Altitude Color Coding** — Green (<5K ft), Blue (5–15K), Orange (15–30K), Red (>30K), Gray (ground)
-- **Aircraft Detail Panel** — Click any aircraft for altitude, speed, heading, vertical rate, coordinates, ICAO
-- **Camera Tracking** — Lock camera to follow a selected aircraft in real-time
-- **Flight Trails** — Accumulated position trails showing flight paths
-- **Flight Prediction** — 60-second heading vectors projected from current position and speed
-- **Airport Overlay** — 40 major international airports with ICAO labels
-- **Altitude Filter** — Dual-slider filter to isolate aircraft within a specific altitude range
-- **Searchable List** — Side panel filterable by callsign, ICAO, or country
-- **Credential Persistence** — Cesium token and OpenSky credentials saved in localStorage
-- **PWA Ready** — Manifest and icons for add-to-homescreen
-- **Keyboard Shortcuts** — L, T, P, A, F, H, R, Esc
-- **Responsive** — Desktop and mobile layouts
+- **3D Globe** — Cesium.js with terrain, atmosphere, and day/night lighting
+- **3D Aircraft Models** — Type-matched GLB models (747, 777, wide-body, narrow-body) with Kalitta Air livery
+- **Airline Watchlist** — Filter to specific airlines by callsign prefix (e.g. `CKS` for Kalitta Air, `FDX` for FedEx)
+- **Aircraft Type Detection** — Identifies B744, B77W, etc. from ADSB.lol data and loads the correct 3D model
+- **Dual Data Sources** — ADSB.lol (primary) + OpenSky Network (fallback), automatic failover
+- **Click-to-Select** — Detail panel with altitude, speed, heading, vertical rate, aircraft type, ICAO hex, coordinates
+- **Camera Tracking** — Lock camera to follow a selected aircraft
+- **Flight Trails** — Accumulated path history
+- **Flight Prediction** — 60-second heading vector projection
+- **Airport Overlay** — 40+ major international airports with ICAO labels
+- **Altitude Filter** — Dual-range slider to filter by altitude band
+- **Search** — Filter by callsign, ICAO hex, or country
+- **Keyboard Shortcuts** — `L` labels · `T` trails · `P` predict · `A` airports · `F` alt filter · `W` watchlist · `H` home · `R` refresh
 
-## Prerequisites
+## Setup
 
-1. **Cesium Ion Token** (free) — [Get one here](https://ion.cesium.com/tokens)
-2. **OpenSky Account** (optional) — Anonymous access is rate-limited (~100 req/day). [Register here](https://opensky-network.org/index.php/register)
+1. Get a free Cesium Ion token at [ion.cesium.com/tokens](https://ion.cesium.com/tokens)
+2. Open `index.html` in a browser (or serve via any static file server)
+3. Enter your Cesium token and optionally OpenSky credentials
+4. The watchlist defaults to Kalitta Air (`CKS`) — add more prefixes as needed
+
+### Optional: Environment Config
+
+Create `env.js` to auto-fill your Cesium token:
+
+```js
+window.ENV = {
+  CESIUM_ION_TOKEN: 'your-token-here'
+};
+```
 
 ## Project Structure
 
 ```
 skybuddy/
 ├── index.html          # Main entry point
+├── css/style.css       # All styles (HUD, panels, controls, responsive)
+├── js/app.js           # Application logic (data fetch, globe, UI)
+├── assets/
+│   ├── b747.glb        # Boeing 747-400F model (Kalitta livery)
+│   ├── b777.glb        # Boeing 777F model
+│   ├── wide.glb        # Generic wide-body (A330/787/767)
+│   ├── narrow.glb      # Generic narrow-body (737/A320)
+│   ├── favicon.svg     # Browser favicon
+│   └── icon-180.png    # PWA icon
 ├── manifest.json       # PWA manifest
-├── css/
-│   └── style.css       # All styles (HUD, panels, responsive)
-├── js/
-│   └── app.js          # Application logic (fetch, render, UI)
-└── assets/
-    ├── favicon.svg     # SVG favicon
-    └── icon-180.png    # PWA icon (180x180)
+├── env.js              # Environment config (not committed)
+└── README.md
 ```
 
-## Running Locally
+## Tech Stack
 
-No build step required — this is a static site:
-
-```bash
-python3 -m http.server 8080 --directory /root/skybuddy
-# or
-npx serve /root/skybuddy
-```
+- **Cesium.js 1.114** — 3D globe rendering, terrain, camera, entity system
+- **ADSB.lol API** — Live ADS-B data with aircraft type identification
+- **OpenSky Network API** — Fallback ADS-B data source
+- **Vanilla JS** — No framework, no build step, no npm
 
 ## Data Sources
 
-| Source | Rate Limit | Auth | Query Style |
-|--------|-----------|------|-------------|
-| OpenSky Network | ~100/day anon, ~4000/day auth | Optional | Bounding box |
-| ADSB.lol | Generous | None | Radius-based |
-
-The app automatically falls back to ADSB.lol if OpenSky returns 429. Click the source label in the top bar to manually switch.
+| Source | Rate Limit | Aircraft Type | Auth |
+|--------|-----------|---------------|------|
+| ADSB.lol | Generous | Yes (`t` field) | None |
+| OpenSky | ~100/day anon, ~4000/day auth | No | Optional |
 
 ## Deployment
 
-Static files served by Caddy on VPS. No backend, no build step.
-
-```
-skybuddy.clawnux.com {
-    root * /root/skybuddy
-    file_server
-    encode gzip
-}
-```
-
-## Keyboard Shortcuts
-
-| Key | Action |
-|-----|--------|
-| `L` | Toggle callsign labels |
-| `T` | Toggle flight trails |
-| `P` | Toggle prediction vectors |
-| `A` | Toggle airport overlay |
-| `F` | Toggle altitude filter |
-| `H` | Fly to home position |
-| `R` | Refresh aircraft data |
-| `Esc` | Close detail panel |
+Static files — serve with any web server. Currently deployed via Caddy on a Hostinger VPS with auto-TLS.
 
 ## License
 

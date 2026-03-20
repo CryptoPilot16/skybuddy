@@ -20,7 +20,7 @@ let predictionEntities = [];
 let airportEntities = [];
 let altFilterMin = 0;
 let altFilterMax = 50000;
-let dataSourceMode = 'opensky'; // 'opensky' | 'adsbx'
+let dataSourceMode = 'adsbx'; // 'opensky' | 'adsbx' — default to ADSB.lol for aircraft type data
 let failedSources = new Set();
 let globeFilter = ''; // search filter applied to globe entities too
 let watchlist = []; // persistent airline/callsign filter
@@ -89,6 +89,36 @@ const msToKts = (ms) => ms ? Math.round(ms * 1.94384) : 0;
 const mToFt = (m) => m ? Math.round(m * 3.28084) : 0;
 const msToFpm = (ms) => ms ? Math.round(ms * 196.85) : 0;
 
+// ─── Aircraft Type → Model Mapping ───
+const MODEL_MAP = {
+  // 747 variants
+  'B741': 'assets/b747.glb', 'B742': 'assets/b747.glb', 'B743': 'assets/b747.glb',
+  'B744': 'assets/b747.glb', 'B748': 'assets/b747.glb', 'B74S': 'assets/b747.glb',
+  'B74D': 'assets/b747.glb', 'B74R': 'assets/b747.glb',
+  // 777 variants
+  'B772': 'assets/b777.glb', 'B773': 'assets/b777.glb', 'B77L': 'assets/b777.glb',
+  'B77W': 'assets/b777.glb', 'B778': 'assets/b777.glb', 'B779': 'assets/b777.glb',
+  // Wide-body
+  'A332': 'assets/wide.glb', 'A333': 'assets/wide.glb', 'A338': 'assets/wide.glb',
+  'A339': 'assets/wide.glb', 'A342': 'assets/wide.glb', 'A343': 'assets/wide.glb',
+  'A345': 'assets/wide.glb', 'A346': 'assets/wide.glb',
+  'A359': 'assets/wide.glb', 'A35K': 'assets/wide.glb',
+  'B762': 'assets/wide.glb', 'B763': 'assets/wide.glb', 'B764': 'assets/wide.glb',
+  'B788': 'assets/wide.glb', 'B789': 'assets/wide.glb', 'B78X': 'assets/wide.glb',
+  'MD11': 'assets/wide.glb', 'DC10': 'assets/wide.glb',
+};
+
+function getModelUri(typeCode) {
+  if (!typeCode) return 'assets/narrow.glb';
+  const code = typeCode.toUpperCase();
+  if (MODEL_MAP[code]) return MODEL_MAP[code];
+  // Guess by prefix
+  if (code.startsWith('B74')) return 'assets/b747.glb';
+  if (code.startsWith('B77')) return 'assets/b777.glb';
+  if (code.startsWith('A3') || code.startsWith('B76') || code.startsWith('B78')) return 'assets/wide.glb';
+  return 'assets/narrow.glb';
+}
+
 // ─── Notifications ───
 function notify(message, type = 'info') {
   const el = document.getElementById('notification');
@@ -131,7 +161,15 @@ function saveWatchlist() {
 function loadWatchlist() {
   try {
     const saved = localStorage.getItem('skybuddy_watchlist');
-    if (saved) watchlist = JSON.parse(saved);
+    if (saved) {
+      watchlist = JSON.parse(saved);
+    } else {
+      // First visit defaults: Kalitta Air
+      watchlist = ['CKS'];
+      watchlistActive = true;
+      saveWatchlist();
+      saveWatchlistActive();
+    }
     const active = localStorage.getItem('skybuddy_watchlist_active');
     if (active !== null) watchlistActive = active === 'true';
   } catch (e) {}
@@ -328,18 +366,16 @@ function buildOpenSkyUrl(rect) {
 }
 
 function buildAdsbLolUrl(rect) {
-  // ADSB.lol uses a different bounding box format
-  let url = 'https://api.adsb.lol/v2/ladd';
-  if (rect) {
-    const west = Cesium.Math.toDegrees(rect.west).toFixed(2);
-    const south = Cesium.Math.toDegrees(rect.south).toFixed(2);
-    const east = Cesium.Math.toDegrees(rect.east).toFixed(2);
-    const north = Cesium.Math.toDegrees(rect.north).toFixed(2);
-    if ((north - south) < CONFIG.ZOOM_BOUNDING_LAT) {
-      url = `https://api.adsb.lol/v2/lat/${((+north + +south) / 2).toFixed(4)}/lon/${((+east + +west) / 2).toFixed(4)}/dist/250`;
-    }
+  // No rect = fetch globally (watchlist mode)
+  if (!rect) return 'https://api.adsb.lol/v2/ladd';
+  const west = Cesium.Math.toDegrees(rect.west).toFixed(2);
+  const south = Cesium.Math.toDegrees(rect.south).toFixed(2);
+  const east = Cesium.Math.toDegrees(rect.east).toFixed(2);
+  const north = Cesium.Math.toDegrees(rect.north).toFixed(2);
+  if ((north - south) < CONFIG.ZOOM_BOUNDING_LAT) {
+    return `https://api.adsb.lol/v2/lat/${((+north + +south) / 2).toFixed(4)}/lon/${((+east + +west) / 2).toFixed(4)}/dist/250`;
   }
-  return url;
+  return 'https://api.adsb.lol/v2/ladd';
 }
 
 function parseOpenSkyData(data) {
@@ -357,6 +393,7 @@ function parseOpenSkyData(data) {
       heading: s[10],
       vertRate: s[11],
       geoAlt: s[13],
+      acType: null,
     };
   });
   return result;
@@ -375,10 +412,13 @@ function parseAdsbLolData(data) {
       lon: a.lon, lat: a.lat,
       alt: a.alt_baro !== 'ground' ? (a.alt_baro ? a.alt_baro * 0.3048 : null) : null,
       onGround: a.alt_baro === 'ground',
-      velocity: a.gs ? a.gs * 0.514444 : null, // kts to m/s
+      velocity: a.gs ? a.gs * 0.514444 : null,
       heading: a.track || a.true_heading,
-      vertRate: a.baro_rate ? a.baro_rate * 0.00508 : null, // fpm to m/s
+      vertRate: a.baro_rate ? a.baro_rate * 0.00508 : null,
       geoAlt: a.alt_geom ? a.alt_geom * 0.3048 : null,
+      acType: a.t || null, // e.g. "B744", "B77W"
+      registration: a.r || null,
+      acDesc: a.desc || null,
     };
   });
   return result;
@@ -396,7 +436,8 @@ function cycleDataSource() {
 
 // ─── Data Fetching ───
 async function fetchAircraft() {
-  const rect = viewer.camera.computeViewRectangle();
+  // When watchlist is active, fetch globally (no bounding box) to find all watched aircraft worldwide
+  const rect = watchlistActive ? null : viewer.camera.computeViewRectangle();
   const sources = dataSourceMode === 'opensky'
     ? ['opensky', 'adsbx']
     : ['adsbx', 'opensky'];
@@ -505,16 +546,17 @@ function updateGlobe() {
       new Cesium.HeadingPitchRoll(hdgRad, pitchRad, 0)
     );
 
+    const modelUri = getModelUri(ac.acType);
+
     if (aircraftEntities[ac.icao]) {
       const entity = aircraftEntities[ac.icao];
       entity.position = position;
       entity.orientation = orientation;
 
-      // Update model color based on altitude
-      if (entity.model) {
-        entity.model.color = ac.onGround
-          ? Cesium.Color.fromCssColorString('#5a6a7a').withAlpha(0.9)
-          : altitudeColor(alt).withAlpha(0.95);
+      // Switch model if type changed (e.g. first fetch had no type, update has it)
+      if (entity._modelUri !== modelUri) {
+        entity.model.uri = modelUri;
+        entity._modelUri = modelUri;
       }
 
       if (entity.label) {
@@ -537,17 +579,12 @@ function updateGlobe() {
         position: position,
         orientation: orientation,
         model: {
-          uri: 'assets/airplane.glb',
-          minimumPixelSize: 24,
-          maximumScale: 20000,
-          scale: 500,
-          color: ac.onGround
-            ? Cesium.Color.fromCssColorString('#5a6a7a').withAlpha(0.9)
-            : altitudeColor(alt).withAlpha(0.95),
-          colorBlendMode: Cesium.ColorBlendMode.MIX,
-          colorBlendAmount: 0.6,
-          silhouetteColor: Cesium.Color.fromCssColorString('#00ff88').withAlpha(0.3),
-          silhouetteSize: 1.0,
+          uri: modelUri,
+          minimumPixelSize: 28,
+          maximumScale: 600,
+          scale: 1.0,
+          silhouetteColor: Cesium.Color.fromCssColorString('#00ff88').withAlpha(0.4),
+          silhouetteSize: 1.5,
         },
         label: {
           text: ac.callsign || ac.icao,
@@ -563,6 +600,7 @@ function updateGlobe() {
         },
       });
       entity._acIcao = ac.icao;
+      entity._modelUri = modelUri;
       aircraftEntities[ac.icao] = entity;
     }
   });
@@ -601,7 +639,7 @@ function renderAircraftList() {
   const filter = (document.getElementById('searchBox').value || '').toUpperCase();
 
   const sorted = Object.values(aircraftData)
-    .filter(ac => ac.lat && ac.lon && !ac.onGround && passesWatchlist(ac) && passesAltFilter(ac))
+    .filter(ac => ac.lat && ac.lon && (watchlistActive ? true : !ac.onGround) && passesWatchlist(ac) && passesAltFilter(ac))
     .filter(ac =>
       !filter ||
       (ac.callsign && ac.callsign.toUpperCase().includes(filter)) ||
@@ -617,7 +655,7 @@ function renderAircraftList() {
     <div class="ac-item ${selectedAc === ac.icao ? 'selected' : ''}" onclick="selectAircraft('${ac.icao}')">
       <span class="ac-callsign">${ac.callsign || ac.icao}</span>
       <span class="ac-alt">${mToFt(ac.alt).toLocaleString()} ft</span>
-      <span class="ac-origin">${ac.country}</span>
+      <span class="ac-origin">${ac.acType || ac.country}</span>
       <span class="ac-speed">${msToKts(ac.velocity)} kts</span>
     </div>
   `
@@ -662,6 +700,7 @@ function updateDetailPanel(ac) {
   document.getElementById('detLat').textContent = (ac.lat || 0).toFixed(4);
   document.getElementById('detLon').textContent = (ac.lon || 0).toFixed(4);
   document.getElementById('detIcao').textContent = ac.icao;
+  document.getElementById('detType').textContent = ac.acType || '—';
   document.getElementById('detGnd').textContent = ac.onGround ? 'YES' : 'NO';
 }
 

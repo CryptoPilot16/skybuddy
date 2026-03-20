@@ -17,7 +17,11 @@ Static site, no build step, no framework.
 - Cesium ion token required (free at ion.cesium.com/tokens)
 - OpenSky auth optional (anonymous = ~100 req/day, auth = ~4000 req/day)
 - Auto-refreshes every 10s, scopes to camera viewport
-- Aircraft rendered as color-coded point entities (altitude-based)
+- Aircraft rendered as 3D GLB models matched to aircraft type (747, 777, wide/narrow body)
+- `assets/b747.glb` — Boeing 747-400F with Kalitta livery colors
+- `assets/b777.glb` — Boeing 777F
+- `assets/wide.glb` — Generic wide-body (A330/787/767)
+- `assets/narrow.glb` — Generic narrow-body (737/A320)
 
 ## Key APIs
 - OpenSky: `GET https://opensky-network.org/api/states/all?lamin=&lomin=&lamax=&lomax=`
@@ -38,7 +42,7 @@ Static site, no build step, no framework.
 - Flight prediction vectors (60s heading projection)
 - Airport overlay (40 major intl airports with ICAO labels)
 - Altitude filter (dual-slider, min/max range)
-- Dual data sources: OpenSky (primary) + ADSB.lol (fallback)
+- Dual data sources: ADSB.lol (primary, has aircraft type) + OpenSky (fallback)
 - Searchable aircraft list (callsign, ICAO, country)
 - Viewport-scoped API calls
 - Credential persistence in localStorage
@@ -52,7 +56,9 @@ Static site, no build step, no framework.
 - [x] Airport overlay layer (40 major airports, ICAO labels)
 - [x] ADSB.lol as fallback data source (automatic failover)
 - [x] Altitude filter slider (dual range, min/max)
-- [ ] GLTF 3D aircraft models instead of point entities
+- [x] GLTF 3D aircraft models matched to aircraft type (B747, B777, wide-body, narrow-body)
+- [x] Airline watchlist with callsign prefix filter (default: CKS/Kalitta Air)
+- [x] Aircraft type detection from ADSB.lol `t` field
 - [ ] Backend proxy (Node.js) to hide OpenSky credentials
 - [ ] WebSocket or SSE push instead of polling
 - [ ] Heatmap mode (traffic density)
