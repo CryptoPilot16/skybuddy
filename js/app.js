@@ -590,12 +590,12 @@ function renderSchedulePanel() {
     else if (isLive) { statusClass = 'enroute'; statusText = 'EN ROUTE'; }
     const itemClass = 'sched-item' + (isLive ? ' active' : '') + (s.onboard ? ' onboard' : '');
     const locateBtn = isLive ? '<button class="sched-locate" onclick="locateScheduleFlight(\x27' + s.id + '\x27)">LOCATE</button>' : '';
-    return '<div class="' + itemClass + '">' +
+    return '<div class="' + itemClass + '" onclick="showScheduleRoute(\x27' + s.id + '\x27)" style="cursor:pointer">' +
       '<div class="sched-flight">' + s.flightNumber + ' ' + locateBtn + '</div>' +
       '<div class="sched-route">' + s.departure + ' <span class="sched-arrow">\u2192</span> ' + s.arrival + '</div>' +
       '<div class="sched-time">' + timeStr + (s.notes ? ' \u00b7 ' + s.notes : '') + '</div>' +
       '<span class="sched-status ' + statusClass + '">' + statusText + '</span>' +
-      '<button class="sched-remove" onclick="removeScheduleEntry(\x27' + s.id + '\x27)">\u2715</button>' +
+      '<button class="sched-remove" onclick="event.stopPropagation(); removeScheduleEntry(\x27' + s.id + '\x27)">\u2715</button>' +
     '</div>';
   }).join('');
   const actions = document.getElementById('schedActions');
@@ -603,10 +603,103 @@ function renderSchedulePanel() {
 }
 
 function locateScheduleFlight(schedId) {
+  event.stopPropagation();
   const icao = scheduleMatches.get(schedId);
   if (icao && aircraftData[icao]) {
     selectAircraft(icao);
   }
+}
+
+function showScheduleRoute(schedId) {
+  const s = schedule.find(x => x.id === schedId);
+  if (!s) return;
+
+  // If live, locate the aircraft instead
+  const icao = scheduleMatches.get(schedId);
+  if (icao && aircraftData[icao]) {
+    selectAircraft(icao);
+    return;
+  }
+
+  // Look up airports
+  const depApt = AIRPORTS.find(a => a.icao === s.departure);
+  const arrApt = AIRPORTS.find(a => a.icao === s.arrival);
+  if (!depApt || !arrApt) {
+    notify('Airport not found: ' + (!depApt ? s.departure : s.arrival), 'warn');
+    return;
+  }
+
+  // Clear previous route
+  clearRouteProjection();
+
+  // Draw arc between DEP and ARR
+  const numPts = 60;
+  const positions = [];
+  for (let i = 0; i <= numPts; i++) {
+    const t = i / numPts;
+    const lat = depApt.lat + (arrApt.lat - depApt.lat) * t;
+    const lon = depApt.lon + (arrApt.lon - depApt.lon) * t;
+    // Parabolic altitude arc peaking at ~FL350
+    const alt = 10668 * 4 * t * (1 - t); // ~35,000ft at midpoint
+    positions.push(Cesium.Cartesian3.fromDegrees(lon, lat, alt));
+  }
+
+  scheduleRouteEntities.push(viewer.entities.add({
+    polyline: {
+      positions: positions,
+      width: 3,
+      material: new Cesium.PolylineGlowMaterialProperty({
+        color: Cesium.Color.fromCssColorString('#DAA520'),
+        glowPower: 0.15,
+      }),
+    },
+  }));
+
+  // DEP marker
+  scheduleRouteEntities.push(viewer.entities.add({
+    position: Cesium.Cartesian3.fromDegrees(depApt.lon, depApt.lat, 0),
+    point: { pixelSize: 10, color: Cesium.Color.LIME, outlineColor: Cesium.Color.BLACK, outlineWidth: 1 },
+    label: {
+      text: depApt.icao + ' DEP',
+      font: '11px monospace', fillColor: Cesium.Color.LIME,
+      style: Cesium.LabelStyle.FILL_AND_OUTLINE, outlineColor: Cesium.Color.BLACK, outlineWidth: 3,
+      pixelOffset: new Cesium.Cartesian2(0, -16), showBackground: true,
+      backgroundColor: Cesium.Color.fromCssColorString('rgba(0,0,0,0.7)'),
+      backgroundPadding: new Cesium.Cartesian2(6, 3),
+      disableDepthTestDistance: Number.POSITIVE_INFINITY,
+    },
+  }));
+
+  // ARR marker
+  scheduleRouteEntities.push(viewer.entities.add({
+    position: Cesium.Cartesian3.fromDegrees(arrApt.lon, arrApt.lat, 0),
+    point: { pixelSize: 10, color: Cesium.Color.fromCssColorString('#DAA520'), outlineColor: Cesium.Color.BLACK, outlineWidth: 1 },
+    label: {
+      text: arrApt.icao + ' ARR',
+      font: '11px monospace', fillColor: Cesium.Color.fromCssColorString('#DAA520'),
+      style: Cesium.LabelStyle.FILL_AND_OUTLINE, outlineColor: Cesium.Color.BLACK, outlineWidth: 3,
+      pixelOffset: new Cesium.Cartesian2(0, -16), showBackground: true,
+      backgroundColor: Cesium.Color.fromCssColorString('rgba(0,0,0,0.7)'),
+      backgroundPadding: new Cesium.Cartesian2(6, 3),
+      disableDepthTestDistance: Number.POSITIVE_INFINITY,
+    },
+  }));
+
+  // Fly camera to show the route
+  const midLat = (depApt.lat + arrApt.lat) / 2;
+  const midLon = (depApt.lon + arrApt.lon) / 2;
+  const dlat = Math.abs(depApt.lat - arrApt.lat);
+  const dlon = Math.abs(depApt.lon - arrApt.lon);
+  const span = Math.max(dlat, dlon);
+  const camAlt = Math.max(span * 111000 * 1.5, 500000);
+
+  viewer.camera.flyTo({
+    destination: Cesium.Cartesian3.fromDegrees(midLon, midLat, camAlt),
+    orientation: { heading: 0, pitch: Cesium.Math.toRadians(-90), roll: 0 },
+    duration: 1.5,
+  });
+
+  notify(s.flightNumber + ': ' + s.departure + ' → ' + s.arrival);
 }
 
 function matchScheduleToLive() {
