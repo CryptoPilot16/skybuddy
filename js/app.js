@@ -823,7 +823,7 @@ function initApp() {
       destination: Cesium.Cartesian3.fromDegrees(
         CONFIG.DEFAULT_CENTER[0], CONFIG.DEFAULT_CENTER[1], CONFIG.DEFAULT_ALTITUDE
       ),
-      orientation: { heading: 0, pitch: Cesium.Math.toRadians(-60), roll: 0 },
+      orientation: { heading: 0, pitch: Cesium.Math.toRadians(-80), roll: 0 },
       duration: 0,
     });
 
@@ -931,6 +931,7 @@ function handleKeyboard(e) {
     case 'w': toggleWatchlistPanel(); break;
     case 's': toggleSchedulePanel(); break;
     case 'c': toggleConflicts(); break;
+    case 'n': orientNorthUp(); break;
     case 'g': if (selectedAc) toggleGpsMode(); break;
     case 'escape':
       if (selectedAc) closeDetail();
@@ -1862,9 +1863,27 @@ function flyHome() {
     destination: Cesium.Cartesian3.fromDegrees(
       CONFIG.DEFAULT_CENTER[0], CONFIG.DEFAULT_CENTER[1], CONFIG.DEFAULT_ALTITUDE
     ),
-    orientation: { heading: 0, pitch: Cesium.Math.toRadians(-60), roll: 0 },
+    orientation: { heading: 0, pitch: Cesium.Math.toRadians(-80), roll: 0 },
     duration: CONFIG.FLY_DURATION,
   });
+}
+
+function orientNorthUp() {
+  const camera = viewer.camera;
+  const pos = camera.positionCartographic;
+  // If already north-up, reset tilt to top-down (like Google Maps compass)
+  const isNorth = Math.abs(Cesium.Math.toDegrees(camera.heading)) < 2;
+  const targetPitch = isNorth ? Cesium.Math.toRadians(-90) : camera.pitch;
+  viewer.camera.flyTo({
+    destination: Cesium.Cartesian3.fromRadians(pos.longitude, pos.latitude, pos.height),
+    orientation: {
+      heading: 0,
+      pitch: targetPitch,
+      roll: 0,
+    },
+    duration: 0.6,
+  });
+  notify(isNorth ? 'Top-down view' : 'North up');
 }
 
 function refreshData() {

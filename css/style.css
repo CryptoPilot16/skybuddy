@@ -113,6 +113,22 @@ body {
   color: var(--accent);
   border-color: var(--accent);
 }
+.compass-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 11px;
+  font-family: var(--mono);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 6px;
+  line-height: 1;
+  transition: color 0.2s, border-color 0.2s;
+}
+.compass-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
 
 .stat { display: flex; align-items: center; gap: 4px; }
 .stat-label {
