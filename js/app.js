@@ -2668,7 +2668,7 @@ async function drawConflicts() {
           scaleByDistance: new Cesium.NearFarScalar(1e5, 1.4, 1.5e7, 0.5),
           translucencyByDistance: new Cesium.NearFarScalar(1e5, 1.0, 2e7, 0.3),
           disableDepthTestDistance: 0,
-          show: true,
+          show: false,
           backgroundColor: Cesium.Color.fromCssColorString('rgba(0,0,0,0.75)'),
           showBackground: true,
           backgroundPadding: new Cesium.Cartesian2(8, 5),
@@ -2681,30 +2681,23 @@ async function drawConflicts() {
 
     viewer.dataSources.add(conflictDataSource);
 
-    // Hover + click handler for country names
+    // Click handler for country labels (conflict and non-conflict)
     if (!conflictHoverHandler) {
       conflictHoverHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
 
-      // Hover — show label for country under cursor
-      conflictHoverHandler.setInputAction(function (movement) {
-        // Hide previous hover label
-        if (_hoveredCountryEntity && !_hoveredCountryEntity._clicked) {
-          _hoveredCountryEntity.label.show = false;
-          _hoveredCountryEntity = null;
-        }
-
-        const picked = viewer.scene.pick(movement.endPosition);
+      conflictHoverHandler.setInputAction(function (click) {
+        const picked = viewer.scene.pick(click.position);
         if (!Cesium.defined(picked) || !picked.id) return;
 
         const entity = picked.id;
         const countryName = entity._countryName;
         if (!countryName) return;
 
-        // Find or create a label for this country
+        // Find existing label for this country
         let labelEnt = conflictLabelEntities.find(e => e._countryName === countryName);
         if (!labelEnt) {
-          // Non-conflict country — create a temporary label at pick position
-          const cartesian = viewer.scene.pickPosition(movement.endPosition);
+          // Non-conflict country — create a label at click position
+          const cartesian = viewer.scene.pickPosition(click.position);
           if (!cartesian) return;
           const carto = Cesium.Cartographic.fromCartesian(cartesian);
           labelEnt = viewer.entities.add({
@@ -2733,32 +2726,9 @@ async function drawConflicts() {
           conflictLabelEntities.push(labelEnt);
         }
 
-        labelEnt.label.show = true;
-        _hoveredCountryEntity = labelEnt;
-      }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
-
-      // Click — toggle sticky label
-      conflictHoverHandler.setInputAction(function (click) {
-        const picked = viewer.scene.pick(click.position);
-        if (!Cesium.defined(picked) || !picked.id) return;
-
-        const entity = picked.id;
-        const countryName = entity._countryName;
-        if (!countryName) return;
-
-        const labelEnt = conflictLabelEntities.find(e => e._countryName === countryName);
-        if (labelEnt) {
-          const isShown = labelEnt.label.show.getValue ? labelEnt.label.show.getValue() : labelEnt.label.show;
-          const wasClicked = labelEnt._clicked;
-          // Toggle: if already clicked-sticky, hide it; otherwise make it sticky
-          if (wasClicked) {
-            labelEnt.label.show = false;
-            labelEnt._clicked = false;
-          } else {
-            labelEnt.label.show = true;
-            labelEnt._clicked = true;
-          }
-        }
+        // Toggle label visibility
+        const showing = labelEnt.label.show.getValue ? labelEnt.label.show.getValue() : labelEnt.label.show;
+        labelEnt.label.show = !showing;
       }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
     }
   } catch (e) {
