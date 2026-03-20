@@ -26,7 +26,7 @@ let dataSourceMode = 'adsbx'; // 'opensky' | 'adsbx' — default to ADSB.lol for
 let failedSources = new Set();
 let globeFilter = ''; // search filter applied to globe entities too
 let watchlist = []; // persistent airline/callsign filter
-let watchlistActive = false;
+let watchlistActive = true;
 let activeWebcam = null; // currently shown webcam ICAO
 let routeCache = {}; // callsign → route data from VRS API
 let schedule = []; // user's flight schedule
@@ -997,9 +997,11 @@ function tryAutoLogin() {
   }
   loadSchedule();
   renderSchedulePanel();
-  // Schedule and watchlist panels always visible on load
+  // Schedule always visible; watchlist panel only on desktop (filter is always active)
   document.getElementById('schedulePanel').classList.add('visible');
-  document.getElementById('watchlistPanel').classList.add('visible');
+  if (!isMobile()) {
+    document.getElementById('watchlistPanel').classList.add('visible');
+  }
 
   if (token) {
     initApp();
