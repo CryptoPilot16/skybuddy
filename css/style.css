@@ -479,6 +479,80 @@ body {
 }
 .notification.error { border-color: var(--warn); color: var(--warn); }
 
+/* ─── Altitude Filter ─── */
+.alt-filter {
+  position: absolute;
+  bottom: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 16px;
+  backdrop-filter: blur(20px);
+  width: 280px;
+  display: none;
+  z-index: 20;
+}
+.alt-filter.visible { display: block; }
+.alt-filter-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px;
+}
+.alt-filter-title {
+  font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim);
+}
+.alt-filter-value {
+  font-size: 11px; color: var(--accent); font-weight: 600;
+}
+.alt-filter-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 6px;
+}
+.alt-filter-row input[type="range"] {
+  flex: 1; -webkit-appearance: none; appearance: none;
+  height: 4px; background: var(--border); border-radius: 2px; outline: none;
+}
+.alt-filter-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px;
+  background: var(--accent); border-radius: 50%; cursor: pointer;
+}
+.alt-filter-row input[type="range"]::-moz-range-thumb {
+  width: 14px; height: 14px; background: var(--accent);
+  border-radius: 50%; cursor: pointer; border: none;
+}
+.alt-filter-label {
+  font-size: 10px; color: var(--text-dim); min-width: 50px; text-align: right;
+}
+.alt-filter-reset {
+  width: 100%; padding: 6px; margin-top: 6px;
+  background: rgba(0, 255, 136, 0.05); border: 1px solid var(--border);
+  border-radius: 4px; color: var(--text-dim); font-family: var(--mono);
+  font-size: 9px; letter-spacing: 1px; cursor: pointer; text-transform: uppercase;
+}
+.alt-filter-reset:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ─── Prediction Legend ─── */
+.prediction-legend {
+  position: absolute;
+  bottom: 130px;
+  right: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  backdrop-filter: blur(20px);
+  font-size: 9px;
+}
+.pred-legend-title {
+  color: var(--text-dim); text-transform: uppercase; letter-spacing: 1.5px;
+  margin-bottom: 4px; font-size: 8px;
+}
+
+/* ─── Airport Labels ─── */
+.source-indicator {
+  font-size: 8px; margin-left: 4px; opacity: 0.6;
+}
+
 /* ─── Responsive ─── */
 @media (max-width: 768px) {
   .top-bar { padding: 0 12px; }

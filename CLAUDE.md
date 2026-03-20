@@ -35,20 +35,24 @@ Static site, no build step, no framework.
 - Click-to-select with detail panel (alt/spd/hdg/vsi/icao/lat/lon)
 - Camera tracking mode (follows selected aircraft)
 - Flight trail accumulation
+- Flight prediction vectors (60s heading projection)
+- Airport overlay (40 major intl airports with ICAO labels)
+- Altitude filter (dual-slider, min/max range)
+- Dual data sources: OpenSky (primary) + ADSB.lol (fallback)
 - Searchable aircraft list (callsign, ICAO, country)
 - Viewport-scoped API calls
 - Credential persistence in localStorage
-- Keyboard shortcuts (L/T/H/R/Esc)
+- Keyboard shortcuts (L/T/P/A/F/H/R/Esc)
 - Responsive design (desktop + mobile)
 - Notification toasts
-- PWA manifest
+- PWA manifest with 180px icon
 
 ## Roadmap / Next Steps
+- [x] Flight route prediction using heading + speed vectors
+- [x] Airport overlay layer (40 major airports, ICAO labels)
+- [x] ADSB.lol as fallback data source (automatic failover)
+- [x] Altitude filter slider (dual range, min/max)
 - [ ] GLTF 3D aircraft models instead of point entities
 - [ ] Backend proxy (Node.js) to hide OpenSky credentials
 - [ ] WebSocket or SSE push instead of polling
-- [ ] Flight route prediction using heading + speed vectors
-- [ ] Airport overlay layer (ICAO codes, runways)
-- [ ] Add ADSB.lol as fallback data source
 - [ ] Heatmap mode (traffic density)
-- [ ] Altitude filter slider

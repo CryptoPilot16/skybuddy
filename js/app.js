@@ -14,6 +14,14 @@ let osPass = '';
 let refreshInterval = null;
 let trailPositions = {};
 let stats = { totalTracked: 0, sessionStart: null };
+let showPrediction = false;
+let showAirports = false;
+let predictionEntities = [];
+let airportEntities = [];
+let altFilterMin = 0;
+let altFilterMax = 50000;
+let dataSourceMode = 'opensky'; // 'opensky' | 'adsbx'
+let failedSources = new Set();
 
 // ─── Config ───
 const CONFIG = {
@@ -25,7 +33,53 @@ const CONFIG = {
   ZOOM_BOUNDING_LAT: 40,        // skip bounding box if view > 40° lat
   FLY_DURATION: 2,              // camera fly-to seconds
   TRACK_FLY_DURATION: 1.5,
+  PREDICTION_SECONDS: 60,       // seconds to project heading vector
+  AIRPORT_MIN_ZOOM_ALT: 2000000, // show airports below this camera altitude
 };
+
+// ─── Major Airports Database ───
+const AIRPORTS = [
+  { icao: 'KJFK', name: 'JFK Intl', lat: 40.6413, lon: -73.7781 },
+  { icao: 'KLAX', name: 'Los Angeles', lat: 33.9425, lon: -118.4081 },
+  { icao: 'EGLL', name: 'Heathrow', lat: 51.4700, lon: -0.4543 },
+  { icao: 'LFPG', name: 'Charles de Gaulle', lat: 49.0097, lon: 2.5479 },
+  { icao: 'EDDF', name: 'Frankfurt', lat: 50.0379, lon: 8.5622 },
+  { icao: 'EHAM', name: 'Schiphol', lat: 52.3086, lon: 4.7639 },
+  { icao: 'OMDB', name: 'Dubai Intl', lat: 25.2532, lon: 55.3657 },
+  { icao: 'VHHH', name: 'Hong Kong', lat: 22.3080, lon: 113.9185 },
+  { icao: 'RJTT', name: 'Tokyo Haneda', lat: 35.5494, lon: 139.7798 },
+  { icao: 'ZBAA', name: 'Beijing Capital', lat: 40.0799, lon: 116.6031 },
+  { icao: 'YSSY', name: 'Sydney', lat: -33.9461, lon: 151.1772 },
+  { icao: 'LPPT', name: 'Lisbon', lat: 38.7756, lon: -9.1354 },
+  { icao: 'LEMD', name: 'Madrid Barajas', lat: 40.4983, lon: -3.5676 },
+  { icao: 'LIRF', name: 'Rome Fiumicino', lat: 41.8003, lon: 12.2389 },
+  { icao: 'LSZH', name: 'Zurich', lat: 47.4647, lon: 8.5492 },
+  { icao: 'LTFM', name: 'Istanbul', lat: 41.2753, lon: 28.7519 },
+  { icao: 'WSSS', name: 'Singapore Changi', lat: 1.3502, lon: 103.9944 },
+  { icao: 'KATL', name: 'Atlanta', lat: 33.6407, lon: -84.4277 },
+  { icao: 'KORD', name: "Chicago O'Hare", lat: 41.9742, lon: -87.9073 },
+  { icao: 'KDFW', name: 'Dallas/Fort Worth', lat: 32.8998, lon: -97.0403 },
+  { icao: 'KDEN', name: 'Denver', lat: 39.8561, lon: -104.6737 },
+  { icao: 'KSFO', name: 'San Francisco', lat: 37.6213, lon: -122.3790 },
+  { icao: 'CYYZ', name: 'Toronto Pearson', lat: 43.6777, lon: -79.6248 },
+  { icao: 'SBGR', name: 'Sao Paulo', lat: -23.4356, lon: -46.4731 },
+  { icao: 'FAOR', name: 'Johannesburg', lat: -26.1392, lon: 28.2460 },
+  { icao: 'VIDP', name: 'Delhi', lat: 28.5562, lon: 77.1000 },
+  { icao: 'VTBS', name: 'Bangkok', lat: 13.6900, lon: 100.7501 },
+  { icao: 'RKSI', name: 'Seoul Incheon', lat: 37.4602, lon: 126.4407 },
+  { icao: 'NZAA', name: 'Auckland', lat: -37.0082, lon: 174.7850 },
+  { icao: 'BIKF', name: 'Keflavik', lat: 63.9850, lon: -22.6056 },
+  { icao: 'KMIA', name: 'Miami', lat: 25.7959, lon: -80.2870 },
+  { icao: 'EIDW', name: 'Dublin', lat: 53.4213, lon: -6.2701 },
+  { icao: 'ENGM', name: 'Oslo', lat: 60.1939, lon: 11.1004 },
+  { icao: 'ESSA', name: 'Stockholm', lat: 59.6519, lon: 17.9186 },
+  { icao: 'EKCH', name: 'Copenhagen', lat: 55.6181, lon: 12.6560 },
+  { icao: 'EFHK', name: 'Helsinki', lat: 60.3172, lon: 24.9633 },
+  { icao: 'LOWW', name: 'Vienna', lat: 48.1103, lon: 16.5697 },
+  { icao: 'EPWA', name: 'Warsaw', lat: 52.1657, lon: 20.9671 },
+  { icao: 'LEBL', name: 'Barcelona', lat: 41.2971, lon: 2.0785 },
+  { icao: 'EGKK', name: 'London Gatwick', lat: 51.1537, lon: -0.1821 },
+];
 
 // ─── Unit Conversions ───
 const msToKts = (ms) => ms ? Math.round(ms * 1.94384) : 0;
@@ -167,78 +221,161 @@ function handleKeyboard(e) {
     case 't': togglePaths(); break;
     case 'h': flyHome(); break;
     case 'r': refreshData(); break;
+    case 'p': togglePrediction(); break;
+    case 'a': toggleAirports(); break;
+    case 'f': toggleAltFilter(); break;
     case 'escape':
       if (selectedAc) closeDetail();
       break;
   }
 }
 
+// ─── Data Sources ───
+function buildOpenSkyUrl(rect) {
+  let url = 'https://opensky-network.org/api/states/all';
+  if (rect) {
+    const west = Cesium.Math.toDegrees(rect.west).toFixed(2);
+    const south = Cesium.Math.toDegrees(rect.south).toFixed(2);
+    const east = Cesium.Math.toDegrees(rect.east).toFixed(2);
+    const north = Cesium.Math.toDegrees(rect.north).toFixed(2);
+    if ((north - south) < CONFIG.ZOOM_BOUNDING_LAT) {
+      url += `?lamin=${south}&lomin=${west}&lamax=${north}&lomax=${east}`;
+    }
+  }
+  return url;
+}
+
+function buildAdsbLolUrl(rect) {
+  // ADSB.lol uses a different bounding box format
+  let url = 'https://api.adsb.lol/v2/ladd';
+  if (rect) {
+    const west = Cesium.Math.toDegrees(rect.west).toFixed(2);
+    const south = Cesium.Math.toDegrees(rect.south).toFixed(2);
+    const east = Cesium.Math.toDegrees(rect.east).toFixed(2);
+    const north = Cesium.Math.toDegrees(rect.north).toFixed(2);
+    if ((north - south) < CONFIG.ZOOM_BOUNDING_LAT) {
+      url = `https://api.adsb.lol/v2/lat/${((+north + +south) / 2).toFixed(4)}/lon/${((+east + +west) / 2).toFixed(4)}/dist/250`;
+    }
+  }
+  return url;
+}
+
+function parseOpenSkyData(data) {
+  if (!data.states) return {};
+  const result = {};
+  data.states.forEach(s => {
+    result[s[0]] = {
+      icao: s[0],
+      callsign: (s[1] || '').trim(),
+      country: s[2] || '',
+      lon: s[5], lat: s[6],
+      alt: s[7],
+      onGround: s[8],
+      velocity: s[9],
+      heading: s[10],
+      vertRate: s[11],
+      geoAlt: s[13],
+    };
+  });
+  return result;
+}
+
+function parseAdsbLolData(data) {
+  if (!data.ac) return {};
+  const result = {};
+  data.ac.forEach(a => {
+    const icao = (a.hex || '').trim();
+    if (!icao) return;
+    result[icao] = {
+      icao: icao,
+      callsign: (a.flight || '').trim(),
+      country: a.r || '',
+      lon: a.lon, lat: a.lat,
+      alt: a.alt_baro !== 'ground' ? (a.alt_baro ? a.alt_baro * 0.3048 : null) : null,
+      onGround: a.alt_baro === 'ground',
+      velocity: a.gs ? a.gs * 0.514444 : null, // kts to m/s
+      heading: a.track || a.true_heading,
+      vertRate: a.baro_rate ? a.baro_rate * 0.00508 : null, // fpm to m/s
+      geoAlt: a.alt_geom ? a.alt_geom * 0.3048 : null,
+    };
+  });
+  return result;
+}
+
+function cycleDataSource() {
+  const sources = ['opensky', 'adsbx'];
+  const idx = sources.indexOf(dataSourceMode);
+  dataSourceMode = sources[(idx + 1) % sources.length];
+  failedSources.clear();
+  document.getElementById('dataSource').textContent = dataSourceMode === 'opensky' ? 'OPENSKY' : 'ADSB.LOL';
+  notify('Switched to ' + (dataSourceMode === 'opensky' ? 'OpenSky' : 'ADSB.lol'));
+  fetchAircraft();
+}
+
 // ─── Data Fetching ───
 async function fetchAircraft() {
-  try {
-    const rect = viewer.camera.computeViewRectangle();
-    let url = 'https://opensky-network.org/api/states/all';
+  const rect = viewer.camera.computeViewRectangle();
+  const sources = dataSourceMode === 'opensky'
+    ? ['opensky', 'adsbx']
+    : ['adsbx', 'opensky'];
 
-    if (rect) {
-      const west = Cesium.Math.toDegrees(rect.west).toFixed(2);
-      const south = Cesium.Math.toDegrees(rect.south).toFixed(2);
-      const east = Cesium.Math.toDegrees(rect.east).toFixed(2);
-      const north = Cesium.Math.toDegrees(rect.north).toFixed(2);
-      const latSpan = north - south;
-      if (latSpan < CONFIG.ZOOM_BOUNDING_LAT) {
-        url += `?lamin=${south}&lomin=${west}&lamax=${north}&lomax=${east}`;
+  for (const source of sources) {
+    if (failedSources.has(source)) continue;
+    try {
+      let url, headers = {}, parser;
+
+      if (source === 'opensky') {
+        url = buildOpenSkyUrl(rect);
+        if (osUser && osPass) {
+          headers['Authorization'] = 'Basic ' + btoa(osUser + ':' + osPass);
+        }
+        parser = parseOpenSkyData;
+      } else {
+        url = buildAdsbLolUrl(rect);
+        parser = parseAdsbLolData;
       }
+
+      const resp = await fetch(url, { headers });
+      if (!resp.ok) {
+        console.warn(source, resp.status);
+        if (resp.status === 429) {
+          failedSources.add(source);
+          notify(source + ' rate limited — trying fallback', 'error');
+          continue;
+        }
+        continue;
+      }
+
+      const data = await resp.json();
+      const newData = parser(data);
+      if (Object.keys(newData).length === 0) continue;
+
+      document.getElementById('pulseDot').style.background = 'var(--accent)';
+      const now = new Date();
+      document.getElementById('lastUpdate').textContent = now.toTimeString().split(' ')[0];
+      document.getElementById('acCount').textContent = Object.keys(newData).length;
+      document.getElementById('dataSource').textContent = source === 'opensky' ? 'OPENSKY' : 'ADSB.LOL';
+      stats.totalTracked = Math.max(stats.totalTracked, Object.keys(newData).length);
+
+      aircraftData = newData;
+      updateGlobe();
+      renderAircraftList();
+
+      if (selectedAc && aircraftData[selectedAc]) {
+        updateDetailPanel(aircraftData[selectedAc]);
+      }
+      return; // success
+    } catch (err) {
+      console.warn(source, 'fetch error:', err);
+      failedSources.add(source);
     }
-
-    const headers = {};
-    if (osUser && osPass) {
-      headers['Authorization'] = 'Basic ' + btoa(osUser + ':' + osPass);
-    }
-
-    const resp = await fetch(url, { headers });
-    if (!resp.ok) {
-      console.warn('OpenSky', resp.status);
-      if (resp.status === 429) notify('Rate limited — wait a moment', 'error');
-      return;
-    }
-
-    const data = await resp.json();
-    if (!data.states) return;
-
-    document.getElementById('pulseDot').style.background = 'var(--accent)';
-    const now = new Date();
-    document.getElementById('lastUpdate').textContent = now.toTimeString().split(' ')[0];
-    document.getElementById('acCount').textContent = data.states.length;
-    stats.totalTracked = Math.max(stats.totalTracked, data.states.length);
-
-    const newData = {};
-    data.states.forEach(s => {
-      newData[s[0]] = {
-        icao: s[0],
-        callsign: (s[1] || '').trim(),
-        country: s[2] || '',
-        lon: s[5], lat: s[6],
-        alt: s[7],
-        onGround: s[8],
-        velocity: s[9],
-        heading: s[10],
-        vertRate: s[11],
-        geoAlt: s[13],
-      };
-    });
-
-    aircraftData = newData;
-    updateGlobe();
-    renderAircraftList();
-
-    // Update detail panel if aircraft is selected
-    if (selectedAc && aircraftData[selectedAc]) {
-      updateDetailPanel(aircraftData[selectedAc]);
-    }
-  } catch (err) {
-    console.warn('Fetch error:', err);
-    document.getElementById('pulseDot').style.background = 'var(--warn)';
   }
+
+  // All sources failed
+  document.getElementById('pulseDot').style.background = 'var(--warn)';
+  notify('All data sources unavailable', 'error');
+  // Reset failed sources for next cycle
+  setTimeout(() => failedSources.clear(), 30000);
 }
 
 // ─── Globe Rendering ───
@@ -257,6 +394,15 @@ function updateGlobe() {
   // Update or create entities
   Object.values(aircraftData).forEach(ac => {
     if (ac.lat == null || ac.lon == null) return;
+
+    // Altitude filter: hide entities that don't pass
+    if (!passesAltFilter(ac)) {
+      if (aircraftEntities[ac.icao]) {
+        viewer.entities.remove(aircraftEntities[ac.icao]);
+        delete aircraftEntities[ac.icao];
+      }
+      return;
+    }
 
     const alt = ac.onGround ? 100 : (ac.alt || ac.geoAlt || 1000);
     const position = Cesium.Cartesian3.fromDegrees(ac.lon, ac.lat, alt);
@@ -323,6 +469,9 @@ function updateGlobe() {
     }
   });
 
+  // Redraw predictions if active
+  if (showPrediction) drawPredictions();
+
   // Camera tracking
   if (trackingAc && aircraftData[trackingAc]) {
     const ac = aircraftData[trackingAc];
@@ -354,7 +503,7 @@ function renderAircraftList() {
   const filter = (document.getElementById('searchBox').value || '').toUpperCase();
 
   const sorted = Object.values(aircraftData)
-    .filter(ac => ac.lat && ac.lon && !ac.onGround)
+    .filter(ac => ac.lat && ac.lon && !ac.onGround && passesAltFilter(ac))
     .filter(ac =>
       !filter ||
       (ac.callsign && ac.callsign.toUpperCase().includes(filter)) ||
@@ -489,6 +638,137 @@ function showSidePanel() {
   const btn = document.getElementById('toggleBtn');
   panel.classList.remove('hidden');
   btn.style.display = 'none';
+}
+
+// ─── Altitude Filter ───
+function toggleAltFilter() {
+  const panel = document.getElementById('altFilter');
+  panel.classList.toggle('visible');
+  document.getElementById('btnAltFilter').classList.toggle('active', panel.classList.contains('visible'));
+}
+
+function updateAltFilter() {
+  altFilterMin = parseInt(document.getElementById('altMinSlider').value);
+  altFilterMax = parseInt(document.getElementById('altMaxSlider').value);
+  // Ensure min <= max
+  if (altFilterMin > altFilterMax) {
+    document.getElementById('altMinSlider').value = altFilterMax;
+    altFilterMin = altFilterMax;
+  }
+  document.getElementById('altMinLabel').textContent = altFilterMin >= 1000 ? (altFilterMin / 1000) + 'K ft' : altFilterMin + ' ft';
+  document.getElementById('altMaxLabel').textContent = altFilterMax >= 1000 ? (altFilterMax / 1000) + 'K ft' : altFilterMax + ' ft';
+  document.getElementById('altFilterValue').textContent =
+    (altFilterMin === 0 && altFilterMax === 50000) ? 'All' : `${altFilterMin.toLocaleString()}–${altFilterMax.toLocaleString()} ft`;
+  updateGlobe();
+  renderAircraftList();
+}
+
+function resetAltFilter() {
+  document.getElementById('altMinSlider').value = 0;
+  document.getElementById('altMaxSlider').value = 50000;
+  altFilterMin = 0;
+  altFilterMax = 50000;
+  document.getElementById('altMinLabel').textContent = '0 ft';
+  document.getElementById('altMaxLabel').textContent = '50K ft';
+  document.getElementById('altFilterValue').textContent = 'All';
+  updateGlobe();
+  renderAircraftList();
+}
+
+function passesAltFilter(ac) {
+  if (altFilterMin === 0 && altFilterMax === 50000) return true;
+  const ft = mToFt(ac.alt || ac.geoAlt || 0);
+  return ft >= altFilterMin && ft <= altFilterMax;
+}
+
+// ─── Flight Prediction ───
+function togglePrediction() {
+  showPrediction = !showPrediction;
+  document.getElementById('btnPredict').classList.toggle('active', showPrediction);
+  document.getElementById('predictionLegend').style.display = showPrediction ? 'block' : 'none';
+  if (!showPrediction) clearPredictions();
+  else drawPredictions();
+}
+
+function clearPredictions() {
+  predictionEntities.forEach(e => viewer.entities.remove(e));
+  predictionEntities = [];
+}
+
+function drawPredictions() {
+  clearPredictions();
+  Object.values(aircraftData).forEach(ac => {
+    if (!ac.lat || !ac.lon || ac.onGround || !ac.velocity || !ac.heading) return;
+    if (!passesAltFilter(ac)) return;
+
+    const alt = ac.alt || ac.geoAlt || 1000;
+    const speedMps = ac.velocity; // already m/s
+    const hdgRad = Cesium.Math.toRadians(ac.heading);
+    const dist = speedMps * CONFIG.PREDICTION_SECONDS;
+
+    // Approximate destination (flat earth approx for short distances)
+    const dLat = (dist * Math.cos(hdgRad)) / 111320;
+    const dLon = (dist * Math.sin(hdgRad)) / (111320 * Math.cos(Cesium.Math.toRadians(ac.lat)));
+    const predLat = ac.lat + dLat;
+    const predLon = ac.lon + dLon;
+    const predAlt = alt + (ac.vertRate || 0) * CONFIG.PREDICTION_SECONDS;
+
+    const entity = viewer.entities.add({
+      polyline: {
+        positions: Cesium.Cartesian3.fromDegreesArrayHeights([
+          ac.lon, ac.lat, alt,
+          predLon, predLat, Math.max(predAlt, 50),
+        ]),
+        width: 2,
+        material: new Cesium.PolylineDashMaterialProperty({
+          color: Cesium.Color.fromCssColorString('rgba(255,159,28,0.6)'),
+          dashLength: 12,
+        }),
+      },
+    });
+    predictionEntities.push(entity);
+  });
+}
+
+// ─── Airport Overlay ───
+function toggleAirports() {
+  showAirports = !showAirports;
+  document.getElementById('btnAirports').classList.toggle('active', showAirports);
+  if (showAirports) drawAirports();
+  else clearAirports();
+}
+
+function clearAirports() {
+  airportEntities.forEach(e => viewer.entities.remove(e));
+  airportEntities = [];
+}
+
+function drawAirports() {
+  clearAirports();
+  AIRPORTS.forEach(apt => {
+    const entity = viewer.entities.add({
+      position: Cesium.Cartesian3.fromDegrees(apt.lon, apt.lat, 50),
+      point: {
+        pixelSize: 6,
+        color: Cesium.Color.fromCssColorString('rgba(200, 214, 229, 0.8)'),
+        outlineColor: Cesium.Color.fromCssColorString('rgba(200, 214, 229, 0.3)'),
+        outlineWidth: 8,
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      },
+      label: {
+        text: apt.icao,
+        font: '10px JetBrains Mono',
+        fillColor: Cesium.Color.fromCssColorString('rgba(200, 214, 229, 0.9)'),
+        outlineColor: Cesium.Color.BLACK,
+        outlineWidth: 2,
+        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+        pixelOffset: new Cesium.Cartesian2(0, -14),
+        scaleByDistance: new Cesium.NearFarScalar(5e4, 1.0, CONFIG.AIRPORT_MIN_ZOOM_ALT, 0.0),
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      },
+    });
+    airportEntities.push(entity);
+  });
 }
 
 // ─── Init on Load ───
