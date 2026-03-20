@@ -588,7 +588,8 @@ function renderSchedulePanel() {
     let statusText = 'SCHEDULED';
     if (isLive && s.onboard) { statusClass = 'onboard-live'; statusText = 'ONBOARD'; }
     else if (isLive) { statusClass = 'enroute'; statusText = 'EN ROUTE'; }
-    const itemClass = 'sched-item' + (isLive ? ' active' : '') + (s.onboard ? ' onboard' : '');
+    const isRouteShown = selectedScheduleIds.has(s.id);
+    const itemClass = 'sched-item' + (isLive ? ' active' : '') + (s.onboard ? ' onboard' : '') + (isRouteShown ? ' route-shown' : '');
     const locateBtn = isLive ? '<button class="sched-locate" onclick="locateScheduleFlight(\x27' + s.id + '\x27)">LOCATE</button>' : '';
     return '<div class="' + itemClass + '" onclick="showScheduleRoute(\x27' + s.id + '\x27)" style="cursor:pointer">' +
       '<div class="sched-flight">' + s.flightNumber + ' ' + locateBtn + '</div>' +
@@ -610,53 +611,95 @@ function locateScheduleFlight(schedId) {
   }
 }
 
-function showScheduleRoute(schedId) {
+let selectedScheduleIds = new Set(); // track which schedule routes are shown
+
+async function showScheduleRoute(schedId) {
   const s = schedule.find(x => x.id === schedId);
   if (!s) return;
 
-  // If live, locate the aircraft instead
+  // If live, locate the aircraft
   const icao = scheduleMatches.get(schedId);
   if (icao && aircraftData[icao]) {
     selectAircraft(icao);
     return;
   }
 
+  // Toggle: if already showing this route, remove it
+  if (selectedScheduleIds.has(schedId)) {
+    selectedScheduleIds.delete(schedId);
+    // Remove entities tagged with this schedId
+    scheduleRouteEntities = scheduleRouteEntities.filter(e => {
+      if (e._schedId === schedId) { viewer.entities.remove(e); return false; }
+      return true;
+    });
+    renderSchedulePanel(); // update highlight
+    return;
+  }
+
+  selectedScheduleIds.add(schedId);
+
   // Look up airports
   const depApt = AIRPORTS.find(a => a.icao === s.departure);
   const arrApt = AIRPORTS.find(a => a.icao === s.arrival);
   if (!depApt || !arrApt) {
     notify('Airport not found: ' + (!depApt ? s.departure : s.arrival), 'warn');
+    selectedScheduleIds.delete(schedId);
     return;
   }
 
-  // Clear previous route
-  clearRouteProjection();
-
-  // Draw arc between DEP and ARR
-  const numPts = 60;
-  const positions = [];
-  for (let i = 0; i <= numPts; i++) {
-    const t = i / numPts;
-    const lat = depApt.lat + (arrApt.lat - depApt.lat) * t;
-    const lon = depApt.lon + (arrApt.lon - depApt.lon) * t;
-    // Parabolic altitude arc peaking at ~FL350
-    const alt = 10668 * 4 * t * (1 - t); // ~35,000ft at midpoint
-    positions.push(Cesium.Cartesian3.fromDegrees(lon, lat, alt));
+  // Try VRS route data first for real waypoints
+  const route = await fetchFlightRoute(s.flightNumber);
+  let waypoints = [];
+  if (route && route._airports && route._airports.length >= 2) {
+    waypoints = route._airports.map(a => ({ lat: a.lat, lon: a.lon, icao: a.icao }));
+    // Ensure correct direction: DEP should be first
+    const d0 = haversineDistance(waypoints[0].lat, waypoints[0].lon, depApt.lat, depApt.lon);
+    const dN = haversineDistance(waypoints[waypoints.length-1].lat, waypoints[waypoints.length-1].lon, depApt.lat, depApt.lon);
+    if (dN < d0) waypoints.reverse();
+  } else {
+    waypoints = [
+      { lat: depApt.lat, lon: depApt.lon, icao: depApt.icao },
+      { lat: arrApt.lat, lon: arrApt.lon, icao: arrApt.icao },
+    ];
   }
 
-  scheduleRouteEntities.push(viewer.entities.add({
+  // Build great-circle arc with altitude profile between each waypoint pair
+  const allPositions = [];
+  for (let w = 0; w < waypoints.length - 1; w++) {
+    const from = waypoints[w], to = waypoints[w + 1];
+    const geo = new Cesium.EllipsoidGeodesic(
+      Cesium.Cartographic.fromDegrees(from.lon, from.lat),
+      Cesium.Cartographic.fromDegrees(to.lon, to.lat)
+    );
+    const segPts = 80;
+    for (let i = 0; i <= segPts; i++) {
+      const t = i / segPts;
+      const pt = geo.interpolateUsingFraction(t);
+      const alt = 10668 * 4 * t * (1 - t); // ~FL350 peak
+      allPositions.push(Cesium.Cartesian3.fromRadians(pt.longitude, pt.latitude, alt));
+    }
+  }
+
+  function addSchedEntity(opts) {
+    const e = viewer.entities.add(opts);
+    e._schedId = schedId;
+    scheduleRouteEntities.push(e);
+  }
+
+  // Route arc
+  addSchedEntity({
     polyline: {
-      positions: positions,
+      positions: allPositions,
       width: 3,
       material: new Cesium.PolylineGlowMaterialProperty({
         color: Cesium.Color.fromCssColorString('#DAA520'),
         glowPower: 0.15,
       }),
     },
-  }));
+  });
 
   // DEP marker
-  scheduleRouteEntities.push(viewer.entities.add({
+  addSchedEntity({
     position: Cesium.Cartesian3.fromDegrees(depApt.lon, depApt.lat, 0),
     point: { pixelSize: 10, color: Cesium.Color.LIME, outlineColor: Cesium.Color.BLACK, outlineWidth: 1 },
     label: {
@@ -668,10 +711,10 @@ function showScheduleRoute(schedId) {
       backgroundPadding: new Cesium.Cartesian2(6, 3),
       disableDepthTestDistance: Number.POSITIVE_INFINITY,
     },
-  }));
+  });
 
   // ARR marker
-  scheduleRouteEntities.push(viewer.entities.add({
+  addSchedEntity({
     position: Cesium.Cartesian3.fromDegrees(arrApt.lon, arrApt.lat, 0),
     point: { pixelSize: 10, color: Cesium.Color.fromCssColorString('#DAA520'), outlineColor: Cesium.Color.BLACK, outlineWidth: 1 },
     label: {
@@ -683,22 +726,17 @@ function showScheduleRoute(schedId) {
       backgroundPadding: new Cesium.Cartesian2(6, 3),
       disableDepthTestDistance: Number.POSITIVE_INFINITY,
     },
-  }));
+  });
 
   // Fly camera to show the route
-  const midLat = (depApt.lat + arrApt.lat) / 2;
-  const midLon = (depApt.lon + arrApt.lon) / 2;
-  const dlat = Math.abs(depApt.lat - arrApt.lat);
-  const dlon = Math.abs(depApt.lon - arrApt.lon);
-  const span = Math.max(dlat, dlon);
-  const camAlt = Math.max(span * 111000 * 1.5, 500000);
-
   viewer.camera.flyTo({
-    destination: Cesium.Cartesian3.fromDegrees(midLon, midLat, camAlt),
-    orientation: { heading: 0, pitch: Cesium.Math.toRadians(-90), roll: 0 },
+    destination: Cesium.Rectangle.fromCartographicArray(
+      allPositions.map(p => Cesium.Cartographic.fromCartesian(p))
+    ),
     duration: 1.5,
   });
 
+  renderSchedulePanel(); // update highlight
   notify(s.flightNumber + ': ' + s.departure + ' → ' + s.arrival);
 }
 

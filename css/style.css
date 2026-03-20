@@ -762,6 +762,7 @@ body {
   font-size: 13px; font-weight: 700; color: var(--text); letter-spacing: 1px;
 }
 .sched-item.active .sched-flight { color: var(--accent); }
+.sched-item.route-shown { border-left-color: var(--gold); background: rgba(218, 165, 32, 0.08); }
 .sched-item.onboard .sched-flight { color: var(--gold); }
 .sched-route {
   font-size: 11px; color: var(--text-dim); margin-top: 2px; letter-spacing: 1px;
