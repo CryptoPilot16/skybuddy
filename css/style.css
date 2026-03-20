@@ -649,28 +649,32 @@ body {
 /* ─── Minimap ─── */
 .minimap-container {
   position: absolute;
-  bottom: 50px;
+  bottom: 44px;
   left: 8px;
-  width: 200px;
-  height: 120px;
+  width: 320px;
+  height: 180px;
   background: var(--panel);
   border: 1px solid var(--border);
   overflow: hidden;
   z-index: 20;
+  cursor: crosshair;
 }
 .minimap-header {
   font-size: 7px;
   text-transform: uppercase;
   letter-spacing: 1.5px;
   color: var(--text-dim);
-  padding: 3px 6px;
+  padding: 2px 6px;
   background: rgba(0, 255, 136, 0.02);
   border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
 }
 .minimap-header::before { content: '// '; color: var(--accent); opacity: 0.4; }
+.minimap-header .minimap-count { color: var(--accent); }
 .minimap-canvas {
   width: 100%;
-  height: calc(100% - 18px);
+  height: calc(100% - 16px);
   display: block;
 }
 

@@ -20,6 +20,10 @@ let predictionEntities = [];
 let airportEntities = [];
 let altFilterMin = 0;
 let altFilterMax = 50000;
+let orbitMode = false;
+let orbitDistance = 500; // meters from aircraft
+let orbitAngle = 0;     // current orbit angle (radians)
+let orbitPitch = -15;   // degrees
 let dataSourceMode = 'adsbx'; // 'opensky' | 'adsbx' — default to ADSB.lol for aircraft type data
 let failedSources = new Set();
 let globeFilter = ''; // search filter applied to globe entities too
@@ -296,10 +300,18 @@ function initApp() {
       shouldAnimate: true,
     });
 
+    // HD visual quality
     viewer.scene.globe.enableLighting = true;
     viewer.scene.fog.enabled = true;
-    viewer.scene.fog.density = 0.0003;
+    viewer.scene.fog.density = 0.0002;
     viewer.scene.globe.showGroundAtmosphere = true;
+    viewer.scene.highDynamicRange = true;
+    viewer.scene.globe.maximumScreenSpaceError = 1.5; // sharper terrain tiles
+    viewer.scene.fxaa = true; // anti-aliasing
+    viewer.scene.postProcessStages.ambientOcclusion.enabled = false;
+    viewer.scene.globe.depthTestAgainstTerrain = true;
+    viewer.scene.skyAtmosphere.brightnessShift = 0.02;
+    viewer.scene.skyAtmosphere.saturationShift = 0.1;
 
     // Click handler for aircraft selection
     const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
@@ -309,6 +321,35 @@ function initApp() {
         selectAircraft(picked.id._acIcao);
       }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+    // Orbit mode: mouse drag rotates, wheel zooms distance
+    let orbitDragging = false;
+    let orbitLastX = 0;
+    handler.setInputAction(function (movement) {
+      if (orbitMode && trackingAc) {
+        orbitDragging = true;
+        orbitLastX = movement.position.x;
+      }
+    }, Cesium.ScreenSpaceEventType.RIGHT_DOWN);
+
+    handler.setInputAction(function () {
+      orbitDragging = false;
+    }, Cesium.ScreenSpaceEventType.RIGHT_UP);
+
+    handler.setInputAction(function (movement) {
+      if (orbitMode && orbitDragging && trackingAc) {
+        const dx = movement.endPosition.x - movement.startPosition.x;
+        const dy = movement.endPosition.y - movement.startPosition.y;
+        orbitAngle += dx * 0.005;
+        orbitPitch = Math.max(-80, Math.min(-2, orbitPitch - dy * 0.3));
+      }
+    }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+
+    handler.setInputAction(function (delta) {
+      if (orbitMode && trackingAc) {
+        orbitDistance = Math.max(50, Math.min(5000, orbitDistance * (1 - delta * 0.001)));
+      }
+    }, Cesium.ScreenSpaceEventType.WHEEL);
 
     // Start centered on default location
     viewer.camera.flyTo({
@@ -677,19 +718,50 @@ function updateGlobe() {
   // Redraw predictions if active
   if (showPrediction) drawPredictions();
 
-  // Camera tracking
+  // Camera tracking — orbit or chase
   if (trackingAc && aircraftData[trackingAc]) {
     const ac = aircraftData[trackingAc];
     const alt = ac.alt || ac.geoAlt || 5000;
-    viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(ac.lon, ac.lat, alt + 3000),
-      orientation: {
-        heading: Cesium.Math.toRadians(ac.heading || 0),
-        pitch: Cesium.Math.toRadians(-25),
-        roll: 0,
-      },
-      duration: CONFIG.TRACK_FLY_DURATION,
-    });
+    const pos = Cesium.Cartesian3.fromDegrees(ac.lon, ac.lat, alt);
+
+    if (orbitMode) {
+      // Free orbit — camera circles around the aircraft at orbitDistance
+      // User controls orbitAngle via mouse, we just keep the center on the aircraft
+      const transform = Cesium.Transforms.eastNorthUpToFixedFrame(pos);
+      const offsetX = orbitDistance * Math.cos(orbitAngle);
+      const offsetY = orbitDistance * Math.sin(orbitAngle);
+      const offsetZ = orbitDistance * 0.3;
+      const camOffset = new Cesium.Cartesian3(offsetX, offsetY, offsetZ);
+      const camPos = Cesium.Matrix4.multiplyByPoint(transform, camOffset, new Cesium.Cartesian3());
+
+      viewer.camera.setView({
+        destination: camPos,
+        orientation: {
+          direction: Cesium.Cartesian3.normalize(
+            Cesium.Cartesian3.subtract(pos, camPos, new Cesium.Cartesian3()),
+            new Cesium.Cartesian3()
+          ),
+          up: Cesium.Cartesian3.normalize(camPos, new Cesium.Cartesian3()),
+        },
+      });
+    } else {
+      // Chase cam — behind aircraft
+      const hdg = ac.heading || 0;
+      const hdgRad = Cesium.Math.toRadians(hdg);
+      const offsetDist = 0.003;
+      const camLat = ac.lat - Math.cos(hdgRad) * offsetDist;
+      const camLon = ac.lon - Math.sin(hdgRad) * offsetDist;
+
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(camLon, camLat, alt + 150),
+        orientation: {
+          heading: Cesium.Math.toRadians(hdg),
+          pitch: Cesium.Math.toRadians(-10),
+          roll: 0,
+        },
+        duration: CONFIG.TRACK_FLY_DURATION,
+      });
+    }
   }
 }
 
@@ -891,11 +963,46 @@ function formatEta(minutes) {
 
 // ─── Tracking ───
 function toggleTracking() {
-  trackingAc = trackingAc === selectedAc ? null : selectedAc;
-  const btn = document.getElementById('btnTrack');
-  btn.textContent = trackingAc ? '■ STOP TRACKING' : '◎ TRACK AIRCRAFT';
-  btn.classList.toggle('tracking', !!trackingAc);
+  if (trackingAc === selectedAc) {
+    trackingAc = null;
+    orbitMode = false;
+  } else {
+    trackingAc = selectedAc;
+    orbitMode = false;
+  }
+  updateTrackingUI();
   if (trackingAc) notify('Tracking ' + (aircraftData[trackingAc]?.callsign || trackingAc));
+}
+
+function toggleOrbitMode() {
+  if (!selectedAc) return;
+  trackingAc = selectedAc;
+  orbitMode = !orbitMode;
+  orbitDistance = 500;
+  orbitAngle = 0;
+  orbitPitch = -15;
+  updateTrackingUI();
+  if (orbitMode) {
+    // Disable default camera controls in orbit mode
+    viewer.scene.screenSpaceCameraController.enableRotate = false;
+    viewer.scene.screenSpaceCameraController.enableZoom = false;
+    notify('ORBIT MODE — right-drag to rotate, scroll to zoom');
+  } else {
+    viewer.scene.screenSpaceCameraController.enableRotate = true;
+    viewer.scene.screenSpaceCameraController.enableZoom = true;
+    notify('Orbit mode off');
+  }
+}
+
+function updateTrackingUI() {
+  const btn = document.getElementById('btnTrack');
+  btn.textContent = trackingAc ? '■ STOP' : '◎ TRACK';
+  btn.classList.toggle('tracking', !!trackingAc);
+  const orbitBtn = document.getElementById('btnOrbit');
+  if (orbitBtn) {
+    orbitBtn.classList.toggle('tracking', orbitMode);
+    orbitBtn.textContent = orbitMode ? '■ EXIT ORBIT' : '⟳ ORBIT';
+  }
 }
 
 // ─── Controls ───
@@ -1096,6 +1203,7 @@ function drawAirports() {
 // ─── Minimap ───
 let minimapCtx = null;
 let worldPolygons = null;
+let minimapAcPositions = []; // for click detection
 
 async function initMinimap() {
   const canvas = document.getElementById('minimapCanvas');
@@ -1110,6 +1218,29 @@ async function initMinimap() {
     console.warn('Minimap: failed to load world data', e);
     worldPolygons = [];
   }
+
+  // Click to select aircraft on minimap
+  canvas.addEventListener('click', function (e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const mx = (e.clientX - rect.left) * scaleX;
+    const my = (e.clientY - rect.top) * scaleY;
+
+    let closest = null;
+    let closestDist = 20; // max 20px click radius
+    for (const ac of minimapAcPositions) {
+      const d = Math.sqrt((ac.x - mx) ** 2 + (ac.y - my) ** 2);
+      if (d < closestDist) {
+        closestDist = d;
+        closest = ac;
+      }
+    }
+    if (closest) {
+      selectAircraft(closest.icao);
+    }
+  });
+
   renderMinimap();
 }
 
@@ -1154,21 +1285,50 @@ function renderMinimap() {
     });
   }
 
-  // Aircraft positions
+  // Aircraft positions — store for click detection
+  minimapAcPositions = [];
+  let acCount = 0;
   Object.values(aircraftData).forEach(ac => {
     if (!ac.lat || !ac.lon || !passesWatchlist(ac)) return;
     const x = (ac.lon + 180) / 360 * w;
     const y = h / 2 - (ac.lat / 90) * (h / 2);
+    acCount++;
+    minimapAcPositions.push({ icao: ac.icao, x, y });
 
     const isSelected = selectedAc === ac.icao;
-    minimapCtx.fillStyle = isSelected ? '#ffffff' : '#00ff88';
-    minimapCtx.fillRect(x - 1.5, y - 1.5, 3, 3);
 
-    // Label
-    minimapCtx.fillStyle = '#00ff88';
-    minimapCtx.font = '8px monospace';
-    minimapCtx.fillText(ac.callsign || ac.icao, x + 4, y + 3);
+    if (isSelected) {
+      // Pulsing ring for selected aircraft
+      minimapCtx.strokeStyle = '#DAA520';
+      minimapCtx.lineWidth = 1.5;
+      minimapCtx.beginPath();
+      minimapCtx.arc(x, y, 8, 0, Math.PI * 2);
+      minimapCtx.stroke();
+      // Inner dot
+      minimapCtx.fillStyle = '#DAA520';
+      minimapCtx.beginPath();
+      minimapCtx.arc(x, y, 3, 0, Math.PI * 2);
+      minimapCtx.fill();
+      // Label
+      minimapCtx.fillStyle = '#DAA520';
+      minimapCtx.font = 'bold 10px monospace';
+      minimapCtx.fillText(ac.callsign || ac.icao, x + 12, y + 4);
+    } else {
+      // Normal aircraft dot
+      minimapCtx.fillStyle = '#00ff88';
+      minimapCtx.beginPath();
+      minimapCtx.arc(x, y, 2, 0, Math.PI * 2);
+      minimapCtx.fill();
+      // Label
+      minimapCtx.fillStyle = 'rgba(0, 255, 136, 0.7)';
+      minimapCtx.font = '8px monospace';
+      minimapCtx.fillText(ac.callsign || ac.icao, x + 5, y + 3);
+    }
   });
+
+  // Update count in header
+  const countEl = document.getElementById('minimapCount');
+  if (countEl) countEl.textContent = acCount;
 
   // Camera viewport rect
   if (viewer) {

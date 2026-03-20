@@ -97,7 +97,8 @@
     </div>
     <div class="detail-actions">
       <button class="btn-track" id="btnTrack" onclick="toggleTracking()">◎ TRACK</button>
-      <button class="btn-track" id="btnZoomIn" onclick="zoomToAircraft()">⊕ ZOOM IN</button>
+      <button class="btn-track" id="btnOrbit" onclick="toggleOrbitMode()">⟳ ORBIT</button>
+      <button class="btn-track" id="btnZoomIn" onclick="zoomToAircraft()">⊕ ZOOM</button>
     </div>
   </div>
 
@@ -152,8 +153,8 @@
 
   <!-- Minimap -->
   <div class="minimap-container" id="minimapContainer">
-    <div class="minimap-header">GLOBAL VIEW</div>
-    <canvas class="minimap-canvas" id="minimapCanvas" width="400" height="240"></canvas>
+    <div class="minimap-header">GLOBAL VIEW <span class="minimap-count" id="minimapCount">0</span></div>
+    <canvas class="minimap-canvas" id="minimapCanvas" width="640" height="360"></canvas>
   </div>
 
   <!-- Bottom Controls -->
