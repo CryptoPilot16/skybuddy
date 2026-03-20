@@ -501,6 +501,22 @@ function removeScheduleEntry(id) {
   matchScheduleToLive();
 }
 
+function clearAllSchedule() {
+  if (!confirm('Remove all scheduled flights?')) return;
+  schedule = [];
+  saveSchedule();
+  renderSchedulePanel();
+  matchScheduleToLive();
+  notify('Schedule cleared');
+}
+
+function syncSchedule() {
+  loadSchedule().then(() => {
+    renderSchedulePanel();
+    notify('Schedule synced from server');
+  });
+}
+
 function deleteScheduleEntry(id) {
   removeScheduleEntry(id);
 }
@@ -582,6 +598,8 @@ function renderSchedulePanel() {
       '<button class="sched-remove" onclick="removeScheduleEntry(\x27' + s.id + '\x27)">\u2715</button>' +
     '</div>';
   }).join('');
+  const actions = document.getElementById('schedActions');
+  if (actions) actions.style.display = schedule.length > 0 ? 'flex' : 'none';
 }
 
 function locateScheduleFlight(schedId) {
