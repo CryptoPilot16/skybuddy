@@ -198,42 +198,44 @@
     <button class="ctrl-btn" id="btnWatchlist" onclick="toggleWatchlistPanel()">Watchlist</button>
     <button class="ctrl-btn active" id="btnLabels" onclick="toggleLabels()">Labels</button>
     <button class="ctrl-btn" id="btnPaths" onclick="togglePaths()">Trails</button>
-    <button class="ctrl-btn" id="btnPredict" onclick="togglePrediction()">Predict</button>
     <button class="ctrl-btn" id="btnRoutes" onclick="cycleRouteMode()">Routes</button>
     <button class="ctrl-btn" id="btnAirports" onclick="toggleAirports()">Airports</button>
-    <button class="ctrl-btn" id="btnAltFilter" onclick="toggleAltFilter()">Alt Filter</button>
     <button class="ctrl-btn" onclick="flyHome()">Home</button>
     <button class="ctrl-btn" onclick="refreshData()">↻ Refresh</button>
-    <button class="ctrl-btn" onclick="logout()">Logout</button>
+    <button class="ctrl-btn" onclick="toggleSettingsPanel()">Settings</button>
   </div>
 </div>
 
-<!-- Setup Panel -->
-<div class="setup-panel" id="setupPanel">
-  <h2>SKYBUDDY</h2>
-  <p>
-    Real-time 3D flight tracking on a globe with terrain.<br>
-    Powered by <a href="https://cesium.com" target="_blank">Cesium.js</a> + <a href="https://opensky-network.org" target="_blank">OpenSky Network</a>.<br><br>
-    Get a free Cesium ion token → <a href="https://ion.cesium.com/tokens" target="_blank">ion.cesium.com/tokens</a><br>
-    OpenSky auth is optional (anonymous = rate-limited).
-  </p>
+<!-- Setup Panel (hidden, credentials loaded from localStorage) -->
+<div class="setup-panel" id="setupPanel" style="display:none;">
+  <input type="hidden" id="cesiumToken">
+  <input type="hidden" id="osUser">
+  <input type="hidden" id="osPass">
+</div>
+
+<!-- Settings Panel -->
+<div class="settings-panel" id="settingsPanel">
+  <div class="wl-header">
+    <span class="wl-title">SETTINGS</span>
+    <button class="panel-close-btn" onclick="toggleSettingsPanel()">✕</button>
+  </div>
   <div class="input-group">
-    <label>Cesium Ion Access Token (required)</label>
-    <input type="text" id="cesiumToken" placeholder="eyJhbGci...">
+    <label>Cesium Ion Access Token</label>
+    <input type="text" id="settingsCesiumToken" placeholder="eyJhbGci...">
   </div>
   <div class="input-group">
     <label>OpenSky Username (optional)</label>
-    <input type="text" id="osUser" placeholder="anonymous">
+    <input type="text" id="settingsOsUser" placeholder="anonymous">
   </div>
   <div class="input-group">
     <label>OpenSky Password (optional)</label>
-    <input type="password" id="osPass" placeholder="optional">
+    <input type="password" id="settingsOsPass" placeholder="optional">
   </div>
-  <button class="btn-launch" onclick="initApp()">LAUNCH TRACKER ▸</button>
-  <div class="setup-note">
-    Keyboard shortcuts: <strong>L</strong> labels · <strong>T</strong> trails · <strong>P</strong> predict · <strong>A</strong> airports · <strong>F</strong> alt filter · <strong>H</strong> home · <strong>R</strong> refresh · <strong>Esc</strong> close
+  <button class="wl-toggle-btn" onclick="saveSettings()">Save &amp; Reload</button>
+  <div class="setup-note" style="margin-top:12px; text-align:center;">
+    Shortcuts: <strong>L</strong> labels · <strong>T</strong> trails · <strong>A</strong> airports · <strong>R</strong> refresh · <strong>Shift+R</strong> routes · <strong>H</strong> home · <strong>Esc</strong> close
   </div>
-  <div class="setup-footer">SKYBUDDY v1.0.0</div>
+  <div class="setup-footer">SKYBUDDY v1.1.0</div>
 </div>
 
 <!-- Loading Overlay -->

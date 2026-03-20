@@ -502,6 +502,52 @@ body {
 }
 .notification.error { border-left-color: var(--warn); color: var(--warn); }
 
+/* ─── Settings Panel ─── */
+.settings-panel {
+  position: absolute;
+  bottom: 50px;
+  right: 8px;
+  width: 320px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 0;
+  display: none;
+  z-index: 70;
+  overflow: hidden;
+}
+.settings-panel.visible { display: block; }
+.settings-panel .input-group { padding: 6px 12px; }
+.settings-panel .input-group label {
+  display: block;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+.settings-panel .input-group input {
+  width: 100%;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  box-sizing: border-box;
+}
+.settings-panel .setup-note {
+  font-size: 9px;
+  color: var(--text-dim);
+  padding: 0 12px;
+}
+.settings-panel .setup-footer {
+  text-align: center;
+  font-size: 9px;
+  color: var(--text-dim);
+  padding: 8px;
+  opacity: 0.5;
+}
+
 /* ─── Watchlist Panel ─── */
 .watchlist-panel {
   position: absolute;

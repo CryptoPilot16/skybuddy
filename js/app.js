@@ -521,8 +521,8 @@ function isOnboardAircraft(icao) {
 function initApp() {
   const token = document.getElementById('cesiumToken').value.trim();
   if (!token) {
-    document.getElementById('cesiumToken').style.borderColor = '#ff6b35';
-    notify('Cesium token is required', 'error');
+    toggleSettingsPanel();
+    notify('Set your Cesium Ion token in Settings', 'error');
     return;
   }
 
@@ -637,6 +637,40 @@ function tryAutoLogin() {
   document.getElementById('watchlistStatus').style.color = watchlistActive ? 'var(--accent)' : 'var(--text-dim)';
   loadSchedule();
   renderSchedulePanel();
+
+  // Auto-launch if we have a token
+  if (token) {
+    initApp();
+  } else {
+    // No token — show settings panel
+    toggleSettingsPanel();
+    notify('Set your Cesium Ion token in Settings to begin', 'error');
+  }
+}
+
+// ─── Settings Panel ───
+function toggleSettingsPanel() {
+  const panel = document.getElementById('settingsPanel');
+  panel.classList.toggle('visible');
+  if (panel.classList.contains('visible')) {
+    const creds = loadCredentials();
+    document.getElementById('settingsCesiumToken').value = creds.token || (window.ENV && window.ENV.CESIUM_ION_TOKEN) || '';
+    document.getElementById('settingsOsUser').value = creds.user || '';
+    document.getElementById('settingsOsPass').value = creds.pass || '';
+  }
+}
+
+function saveSettings() {
+  const token = document.getElementById('settingsCesiumToken').value.trim();
+  const user = document.getElementById('settingsOsUser').value.trim();
+  const pass = document.getElementById('settingsOsPass').value.trim();
+  if (!token) {
+    notify('Cesium token is required', 'error');
+    return;
+  }
+  saveCredentials(token, user, pass);
+  notify('Settings saved — reloading...');
+  setTimeout(() => location.reload(), 500);
 }
 
 // ─── Keyboard Shortcuts ───
@@ -1807,8 +1841,47 @@ function drawAirports() {
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
       },
     });
+    entity._airportData = apt;
     airportEntities.push(entity);
   });
+
+  // Click/tap handler for airport names
+  if (!drawAirports._handlerAdded && viewer) {
+    const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+    handler.setInputAction(function (click) {
+      const picked = viewer.scene.pick(click.position);
+      if (Cesium.defined(picked) && picked.id && picked.id._airportData) {
+        const apt = picked.id._airportData;
+        // Toggle between ICAO code and full name
+        const label = picked.id.label;
+        if (label) {
+          const current = label.text.getValue();
+          label.text = current.includes('\n') ? apt.icao : `${apt.icao}\n${apt.name}`;
+        }
+      }
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+    // Hover handler (desktop) — show name on mouse over
+    handler.setInputAction(function (movement) {
+      const picked = viewer.scene.pick(movement.endPosition);
+      // Reset all airport labels to ICAO only
+      airportEntities.forEach(e => {
+        if (e._airportData && e.label) {
+          const txt = e.label.text.getValue();
+          if (txt.includes('\n') && !e._airportClicked) {
+            e.label.text = e._airportData.icao;
+          }
+        }
+      });
+      // Show hovered airport name
+      if (Cesium.defined(picked) && picked.id && picked.id._airportData) {
+        const apt = picked.id._airportData;
+        picked.id.label.text = `${apt.icao}\n${apt.name}`;
+      }
+    }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+
+    drawAirports._handlerAdded = true;
+  }
 }
 
 // ─── Airport Webcam PiP ───
