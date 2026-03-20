@@ -644,8 +644,11 @@ function updateGlobe() {
           minimumPixelSize: 64,
           maximumScale: 500,
           scale: 3.0,
-          silhouetteColor: Cesium.Color.fromCssColorString('#00ff88').withAlpha(0.5),
-          silhouetteSize: 2.0,
+          color: Cesium.Color.fromCssColorString('#f0f0f0'),
+          colorBlendMode: Cesium.ColorBlendMode.MIX,
+          colorBlendAmount: 0.85,
+          silhouetteColor: Cesium.Color.fromCssColorString('#DAA520').withAlpha(0.6),
+          silhouetteSize: 2.5,
         },
         label: {
           text: ac.callsign || ac.icao,
