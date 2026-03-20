@@ -82,6 +82,25 @@ const AIRPORTS = [
   { icao: 'EPWA', name: 'Warsaw', lat: 52.1657, lon: 20.9671 },
   { icao: 'LEBL', name: 'Barcelona', lat: 41.2971, lon: 2.0785 },
   { icao: 'EGKK', name: 'London Gatwick', lat: 51.1537, lon: -0.1821 },
+  // Kalitta Air / cargo hubs
+  { icao: 'KYIP', name: 'Willow Run (Kalitta HQ)', lat: 42.2379, lon: -83.5304 },
+  { icao: 'PANC', name: 'Anchorage', lat: 61.1743, lon: -149.9962 },
+  { icao: 'PAFA', name: 'Fairbanks', lat: 64.8151, lon: -147.8561 },
+  { icao: 'KCVG', name: 'Cincinnati/NKY', lat: 39.0488, lon: -84.6678 },
+  { icao: 'KSDF', name: 'Louisville (UPS Hub)', lat: 38.1744, lon: -85.7360 },
+  { icao: 'KMEM', name: 'Memphis (FedEx Hub)', lat: 35.0424, lon: -89.9767 },
+  { icao: 'KONT', name: 'Ontario Intl', lat: 34.0560, lon: -117.6012 },
+  { icao: 'KRFD', name: 'Rockford', lat: 42.1954, lon: -89.0972 },
+  { icao: 'KBFI', name: 'Boeing Field', lat: 47.5300, lon: -122.3019 },
+  { icao: 'EDDK', name: 'Cologne/Bonn', lat: 50.8659, lon: 7.1427 },
+  { icao: 'OBBI', name: 'Bahrain', lat: 26.2708, lon: 50.6336 },
+  { icao: 'RKSS', name: 'Seoul Gimpo', lat: 37.5586, lon: 126.7906 },
+  { icao: 'RJAA', name: 'Tokyo Narita', lat: 35.7647, lon: 140.3864 },
+  { icao: 'VABB', name: 'Mumbai', lat: 19.0896, lon: 72.8656 },
+  { icao: 'OMAA', name: 'Abu Dhabi', lat: 24.4430, lon: 54.6511 },
+  { icao: 'RCTP', name: 'Taipei Taoyuan', lat: 25.0777, lon: 121.2325 },
+  { icao: 'WMKK', name: 'Kuala Lumpur', lat: 2.7456, lon: 101.7099 },
+  { icao: 'ZSPD', name: 'Shanghai Pudong', lat: 31.1434, lon: 121.8052 },
 ];
 
 // ─── Unit Conversions ───
@@ -702,6 +721,18 @@ function updateDetailPanel(ac) {
   document.getElementById('detIcao').textContent = ac.icao;
   document.getElementById('detType').textContent = ac.acType || '—';
   document.getElementById('detGnd').textContent = ac.onGround ? 'YES' : 'NO';
+
+  // ETA estimation
+  const dest = estimateDestination(ac);
+  if (dest.airport) {
+    document.getElementById('detDest').textContent = `${dest.airport.icao} — ${dest.airport.name}`;
+    document.getElementById('detEta').textContent = formatEta(dest.etaMin);
+    document.getElementById('detDist').textContent = `${dest.distKm.toLocaleString()} km / ${Math.round(dest.distKm * 0.539957).toLocaleString()} nm`;
+  } else {
+    document.getElementById('detDest').textContent = ac.onGround ? 'On ground' : 'Calculating...';
+    document.getElementById('detEta').textContent = '—';
+    document.getElementById('detDist').textContent = '—';
+  }
 }
 
 function closeDetail() {
@@ -709,6 +740,95 @@ function closeDetail() {
   selectedAc = null;
   trackingAc = null;
   renderAircraftList();
+}
+
+// ─── Zoom to Aircraft ───
+function zoomToAircraft() {
+  if (!selectedAc || !aircraftData[selectedAc]) return;
+  const ac = aircraftData[selectedAc];
+  const alt = ac.alt || ac.geoAlt || 1000;
+  const hdg = ac.heading || 0;
+
+  // Position camera behind and slightly above the aircraft
+  const offsetDist = 0.003; // ~300m behind in degrees
+  const hdgRad = Cesium.Math.toRadians(hdg);
+  const behindLat = ac.lat - Math.cos(hdgRad) * offsetDist;
+  const behindLon = ac.lon - Math.sin(hdgRad) * offsetDist;
+
+  viewer.camera.flyTo({
+    destination: Cesium.Cartesian3.fromDegrees(behindLon, behindLat, alt + 150),
+    orientation: {
+      heading: Cesium.Math.toRadians(hdg),
+      pitch: Cesium.Math.toRadians(-10),
+      roll: 0,
+    },
+    duration: 1.5,
+  });
+}
+
+// ─── Destination & ETA Estimation ───
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // km
+  const dLat = Cesium.Math.toRadians(lat2 - lat1);
+  const dLon = Cesium.Math.toRadians(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(Cesium.Math.toRadians(lat1)) * Math.cos(Cesium.Math.toRadians(lat2)) * Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function bearingTo(lat1, lon1, lat2, lon2) {
+  const dLon = Cesium.Math.toRadians(lon2 - lon1);
+  const rlat1 = Cesium.Math.toRadians(lat1);
+  const rlat2 = Cesium.Math.toRadians(lat2);
+  const y = Math.sin(dLon) * Math.cos(rlat2);
+  const x = Math.cos(rlat1) * Math.sin(rlat2) - Math.sin(rlat1) * Math.cos(rlat2) * Math.cos(dLon);
+  return (Cesium.Math.toDegrees(Math.atan2(y, x)) + 360) % 360;
+}
+
+function estimateDestination(ac) {
+  if (!ac.lat || !ac.lon || !ac.heading || !ac.velocity || ac.onGround) {
+    return { airport: null, distKm: 0, etaMin: 0 };
+  }
+
+  const hdg = ac.heading;
+  const speedKmh = (ac.velocity || 0) * 3.6; // m/s to km/h
+  let bestAirport = null;
+  let bestScore = Infinity;
+
+  for (const apt of AIRPORTS) {
+    const dist = haversineDistance(ac.lat, ac.lon, apt.lat, apt.lon);
+    if (dist < 20) continue; // skip airports we're already over
+
+    const bearing = bearingTo(ac.lat, ac.lon, apt.lat, apt.lon);
+    let angleDiff = Math.abs(bearing - hdg);
+    if (angleDiff > 180) angleDiff = 360 - angleDiff;
+
+    // Only consider airports roughly ahead (within 30°)
+    if (angleDiff > 30) continue;
+
+    // Score: prefer closer airports that are more directly ahead
+    const score = dist * (1 + angleDiff / 15);
+    if (score < bestScore) {
+      bestScore = score;
+      bestAirport = apt;
+    }
+  }
+
+  if (!bestAirport || speedKmh < 50) {
+    return { airport: null, distKm: 0, etaMin: 0 };
+  }
+
+  const distKm = haversineDistance(ac.lat, ac.lon, bestAirport.lat, bestAirport.lon);
+  const etaMin = Math.round((distKm / speedKmh) * 60);
+
+  return { airport: bestAirport, distKm: Math.round(distKm), etaMin };
+}
+
+function formatEta(minutes) {
+  if (minutes < 1) return '< 1 min';
+  if (minutes < 60) return `${minutes} min`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${h}h ${m}m`;
 }
 
 // ─── Tracking ───

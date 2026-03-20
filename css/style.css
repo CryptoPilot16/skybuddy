@@ -356,6 +356,17 @@ body {
 .btn-track:hover { background: rgba(0, 255, 136, 0.2); }
 .btn-track.tracking { background: var(--accent); color: var(--bg); }
 
+.detail-wide { grid-column: 1 / -1; }
+.detail-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.detail-actions .btn-track {
+  flex: 1;
+  margin-top: 0;
+}
+
 /* ─── Bottom Controls ─── */
 .bottom-bar {
   position: absolute;
