@@ -580,8 +580,8 @@ function updateGlobe() {
         orientation: orientation,
         model: {
           uri: modelUri,
-          minimumPixelSize: 28,
-          maximumScale: 600,
+          minimumPixelSize: 32,
+          maximumScale: 50000,
           scale: 1.0,
           silhouetteColor: Cesium.Color.fromCssColorString('#00ff88').withAlpha(0.4),
           silhouetteSize: 1.5,
@@ -613,10 +613,10 @@ function updateGlobe() {
     const ac = aircraftData[trackingAc];
     const alt = ac.alt || ac.geoAlt || 5000;
     viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(ac.lon, ac.lat, alt + 50000),
+      destination: Cesium.Cartesian3.fromDegrees(ac.lon, ac.lat, alt + 3000),
       orientation: {
         heading: Cesium.Math.toRadians(ac.heading || 0),
-        pitch: Cesium.Math.toRadians(-45),
+        pitch: Cesium.Math.toRadians(-25),
         roll: 0,
       },
       duration: CONFIG.TRACK_FLY_DURATION,
@@ -678,10 +678,10 @@ function selectAircraft(icao) {
 
   const alt = ac.alt || ac.geoAlt || 5000;
   viewer.camera.flyTo({
-    destination: Cesium.Cartesian3.fromDegrees(ac.lon, ac.lat, alt + 80000),
+    destination: Cesium.Cartesian3.fromDegrees(ac.lon, ac.lat, alt + 2000),
     orientation: {
       heading: Cesium.Math.toRadians(ac.heading || 0),
-      pitch: Cesium.Math.toRadians(-40),
+      pitch: Cesium.Math.toRadians(-25),
       roll: 0,
     },
     duration: CONFIG.FLY_DURATION,
