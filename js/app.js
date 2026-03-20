@@ -1088,5 +1088,114 @@ function drawAirports() {
   });
 }
 
+// ─── Minimap ───
+const MINIMAP_COASTLINE = null; // We'll draw a simple world outline
+let minimapCtx = null;
+
+function initMinimap() {
+  const canvas = document.getElementById('minimapCanvas');
+  if (!canvas) return;
+  minimapCtx = canvas.getContext('2d');
+  renderMinimap();
+}
+
+function renderMinimap() {
+  if (!minimapCtx) return;
+  const canvas = minimapCtx.canvas;
+  const w = canvas.width;
+  const h = canvas.height;
+
+  // Clear
+  minimapCtx.fillStyle = '#0c0c0c';
+  minimapCtx.fillRect(0, 0, w, h);
+
+  // Draw simple world grid
+  minimapCtx.strokeStyle = 'rgba(0, 255, 136, 0.06)';
+  minimapCtx.lineWidth = 0.5;
+  for (let lat = -60; lat <= 60; lat += 30) {
+    const y = h / 2 - (lat / 90) * (h / 2);
+    minimapCtx.beginPath();
+    minimapCtx.moveTo(0, y);
+    minimapCtx.lineTo(w, y);
+    minimapCtx.stroke();
+  }
+  for (let lon = -180; lon <= 180; lon += 60) {
+    const x = (lon + 180) / 360 * w;
+    minimapCtx.beginPath();
+    minimapCtx.moveTo(x, 0);
+    minimapCtx.lineTo(x, h);
+    minimapCtx.stroke();
+  }
+
+  // Draw simplified continent outlines (rough polygons)
+  minimapCtx.strokeStyle = 'rgba(0, 255, 136, 0.15)';
+  minimapCtx.lineWidth = 0.8;
+  const continents = [
+    // North America (simplified)
+    [[-130,50],[-125,60],[-100,65],[-80,60],[-60,50],[-65,45],[-80,25],[-100,20],[-120,30],[-130,50]],
+    // South America
+    [[-80,10],[-60,5],[-35,-5],[-40,-20],[-50,-30],[-70,-55],[-75,-45],[-75,-20],[-80,10]],
+    // Europe
+    [[-10,36],[0,43],[5,44],[15,45],[30,45],[40,42],[30,60],[25,70],[10,65],[5,60],[-10,50],[-10,36]],
+    // Africa
+    [[-15,35],[10,37],[35,30],[40,10],[50,12],[50,0],[35,-35],[20,-35],[15,-25],[10,-5],[-15,5],[-20,15],[-15,35]],
+    // Asia
+    [[40,42],[50,40],[60,40],[70,25],[80,10],[90,20],[100,15],[105,0],[110,20],[120,30],[130,35],[140,40],[145,50],[140,55],[130,50],[120,55],[100,55],[80,50],[70,55],[60,55],[50,55],[40,42]],
+    // Australia
+    [[115,-15],[130,-12],[150,-15],[155,-25],[150,-35],[135,-35],[115,-30],[115,-15]],
+  ];
+
+  continents.forEach(pts => {
+    minimapCtx.beginPath();
+    pts.forEach(([lon, lat], i) => {
+      const x = (lon + 180) / 360 * w;
+      const y = h / 2 - (lat / 90) * (h / 2);
+      if (i === 0) minimapCtx.moveTo(x, y);
+      else minimapCtx.lineTo(x, y);
+    });
+    minimapCtx.stroke();
+  });
+
+  // Draw aircraft positions
+  Object.values(aircraftData).forEach(ac => {
+    if (!ac.lat || !ac.lon || !passesWatchlist(ac)) return;
+    const x = (ac.lon + 180) / 360 * w;
+    const y = h / 2 - (ac.lat / 90) * (h / 2);
+
+    // Aircraft dot
+    minimapCtx.fillStyle = selectedAc === ac.icao ? '#ffffff' : '#00ff88';
+    minimapCtx.fillRect(x - 1.5, y - 1.5, 3, 3);
+
+    // Callsign label for selected
+    if (selectedAc === ac.icao) {
+      minimapCtx.fillStyle = '#00ff88';
+      minimapCtx.font = '9px JetBrains Mono';
+      minimapCtx.fillText(ac.callsign || ac.icao, x + 4, y + 3);
+    }
+  });
+
+  // Draw camera viewport indicator
+  if (viewer) {
+    try {
+      const rect = viewer.camera.computeViewRectangle();
+      if (rect) {
+        const vx1 = (Cesium.Math.toDegrees(rect.west) + 180) / 360 * w;
+        const vy1 = h / 2 - (Cesium.Math.toDegrees(rect.north) / 90) * (h / 2);
+        const vx2 = (Cesium.Math.toDegrees(rect.east) + 180) / 360 * w;
+        const vy2 = h / 2 - (Cesium.Math.toDegrees(rect.south) / 90) * (h / 2);
+        minimapCtx.strokeStyle = 'rgba(0, 255, 136, 0.4)';
+        minimapCtx.lineWidth = 1;
+        minimapCtx.strokeRect(vx1, vy1, vx2 - vx1, vy2 - vy1);
+      }
+    } catch (e) { /* camera not ready */ }
+  }
+}
+
+// Update minimap every 2 seconds
+setInterval(() => { if (minimapCtx) renderMinimap(); }, 2000);
+
 // ─── Init on Load ───
-document.addEventListener('DOMContentLoaded', tryAutoLogin);
+document.addEventListener('DOMContentLoaded', () => {
+  tryAutoLogin();
+  initMinimap();
+});
