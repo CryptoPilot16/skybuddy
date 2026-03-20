@@ -1457,8 +1457,8 @@ function updateGlobe() {
         orientation: orientation,
         model: {
           uri: modelUri,
-          minimumPixelSize: isMobile() ? 24 : 32,
-          maximumScale: isMobile() ? 60 : 80,
+          minimumPixelSize: isMobile() ? 64 : 80,
+          maximumScale: isMobile() ? 500 : 800,
           scale: 1.0,
           silhouetteColor: isOnboardAircraft(ac.icao) ? Cesium.Color.fromCssColorString('#DAA520').withAlpha(0.8) : isScheduledAircraft(ac.icao) ? Cesium.Color.fromCssColorString('#00ff88').withAlpha(0.6) : Cesium.Color.fromCssColorString('#00ff88').withAlpha(0.3),
           silhouetteSize: isOnboardAircraft(ac.icao) ? (isMobile() ? 2.0 : 3.0) : isScheduledAircraft(ac.icao) ? (isMobile() ? 1.5 : 2.0) : (isMobile() ? 0.5 : 1.0),
