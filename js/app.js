@@ -555,19 +555,26 @@ function updateScheduleRoutes() {
 
     const width = isOnboard ? 4 : isLive ? 3 : 2;
 
-    // Build a great-circle arc with altitude
+    // Build a TRUE great-circle arc with altitude using Cesium geodesic
     const cruiseAlt = 10000; // meters (~FL330)
-    const steps = 40;
+    const steps = 60;
     const positions = [];
+    const groundPositions = [];
+    const startCart = Cesium.Cartographic.fromDegrees(depApt.lon, depApt.lat);
+    const endCart = Cesium.Cartographic.fromDegrees(arrApt.lon, arrApt.lat);
+    const geodesic = new Cesium.EllipsoidGeodesic(startCart, endCart);
+
     for (let i = 0; i <= steps; i++) {
       const t = i / steps;
-      const lat = depApt.lat + (arrApt.lat - depApt.lat) * t;
-      const lon = depApt.lon + (arrApt.lon - depApt.lon) * t;
+      const point = geodesic.interpolateUsingFraction(t);
+      const lon = Cesium.Math.toDegrees(point.longitude);
+      const lat = Cesium.Math.toDegrees(point.latitude);
       // Altitude arc: climb, cruise, descend
       let alt = cruiseAlt;
       if (t < 0.15) alt = cruiseAlt * (t / 0.15);
       else if (t > 0.85) alt = cruiseAlt * ((1 - t) / 0.15);
       positions.push(lon, lat, Math.max(alt, 200));
+      groundPositions.push(lon, lat);
     }
 
     // Main route arc
@@ -583,10 +590,10 @@ function updateScheduleRoutes() {
     });
     scheduleRouteEntities.push(routeEntity);
 
-    // Ground shadow
+    // Ground shadow (great circle)
     const groundEntity = viewer.entities.add({
       polyline: {
-        positions: Cesium.Cartesian3.fromDegreesArray([depApt.lon, depApt.lat, arrApt.lon, arrApt.lat]),
+        positions: Cesium.Cartesian3.fromDegreesArray(groundPositions),
         width: 1.5,
         material: color.withAlpha(0.15),
         clampToGround: true,
@@ -1160,7 +1167,7 @@ async function drawRouteForAircraft(ac, color) {
   const lineColor = color || 'rgba(218,165,32,0.7)';
   const shadowColor = color ? color.replace(/[\d.]+\)$/, '0.15)') : 'rgba(218,165,32,0.15)';
 
-  // Build great-circle segments between each waypoint pair
+  // Build TRUE great-circle segments between each waypoint pair
   for (let w = 0; w < waypoints.length - 1; w++) {
     const from = waypoints[w];
     const to = waypoints[w + 1];
@@ -1168,21 +1175,22 @@ async function drawRouteForAircraft(ac, color) {
     const steps = Math.max(20, Math.min(80, Math.round(segDist / 50)));
     const positions = [];
     const groundPositions = [];
+    const startCart = Cesium.Cartographic.fromDegrees(from.lon, from.lat);
+    const endCart = Cesium.Cartographic.fromDegrees(to.lon, to.lat);
+    const geodesic = new Cesium.EllipsoidGeodesic(startCart, endCart);
 
     for (let i = 0; i <= steps; i++) {
       const t = i / steps;
-      // Great circle interpolation using Cesium
-      const interpLon = Cesium.Math.lerp(from.lon, to.lon, t);
-      const interpLat = Cesium.Math.lerp(from.lat, to.lat, t);
+      const point = geodesic.interpolateUsingFraction(t);
+      const interpLon = Cesium.Math.toDegrees(point.longitude);
+      const interpLat = Cesium.Math.toDegrees(point.latitude);
 
       // Altitude profile: climb from origin, cruise, descend to destination
       let segAlt = alt;
       if (w === 0 && waypoints[0].icao) {
-        // First segment: climb phase
         segAlt = t < 0.2 ? alt * (t / 0.2) : alt;
       }
       if (w === waypoints.length - 2 && waypoints[waypoints.length - 1].icao) {
-        // Last segment: descent phase
         segAlt = t > 0.7 ? alt * (1 - ((t - 0.7) / 0.3)) : alt;
       }
       positions.push(interpLon, interpLat, Math.max(segAlt, 100));
