@@ -3,3 +3,10 @@ node_modules/
 env.js
 .DS_Store
 *.log
+
+# Build/dev tools for model texturing
+747/
+777/
+*.mjs
+package.json
+package-lock.json
