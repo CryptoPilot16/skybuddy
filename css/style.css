@@ -932,7 +932,7 @@ body {
 /* ─── Conflict Legend ─── */
 .conflict-legend {
   position: absolute;
-  bottom: 50px;
+  bottom: 8px;
   right: 8px;
   background: var(--panel);
   border: 1px solid rgba(255, 50, 50, 0.3);

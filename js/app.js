@@ -2629,22 +2629,20 @@ async function drawConflicts() {
       entity._isConflict = !!conflict;
 
       if (conflict && entity.polygon) {
-        // Conflict country — red fill with outline
-        const alpha = conflict.severity === 'war' ? 0.25 :
-                      conflict.severity === 'high' ? 0.18 : 0.12;
+        // Conflict country — visible red fill, clickable anywhere inside
+        const alpha = conflict.severity === 'war' ? 0.30 :
+                      conflict.severity === 'high' ? 0.22 : 0.15;
         entity.polygon.material = Cesium.Color.RED.withAlpha(alpha);
         entity.polygon.outline = true;
-        entity.polygon.outlineColor = Cesium.Color.RED.withAlpha(0.6);
+        entity.polygon.outlineColor = Cesium.Color.RED.withAlpha(0.5);
         entity.polygon.height = 0;
         entity._conflictSeverity = conflict.severity;
       } else if (entity.polygon) {
-        // Non-conflict country — near-invisible fill for click detection
-        entity.polygon.material = Cesium.Color.WHITE.withAlpha(0.004);
+        // Non-conflict country — very faint fill for click detection
+        entity.polygon.material = Cesium.Color.WHITE.withAlpha(0.01);
         entity.polygon.outline = false;
         entity.polygon.height = 0;
       }
-      // Remove any polyline entities (border lines) — we only want polygon fills
-      if (entity.polyline) entity.polyline.show = false;
     }
 
     // Add conflict country center labels — always visible
