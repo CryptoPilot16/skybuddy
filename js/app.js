@@ -513,6 +513,16 @@ function addScheduleFromSettings() {
 function toggleOtherPlanes() {
   showOtherPlanes = !showOtherPlanes;
   document.getElementById('btnOthers').classList.toggle('active', showOtherPlanes);
+  // Show/hide the aircraft list side panel with the toggle
+  const panel = document.getElementById('sidePanel');
+  const btn = document.getElementById('toggleBtn');
+  if (showOtherPlanes) {
+    panel.classList.remove('hidden');
+    btn.style.display = 'none';
+  } else {
+    panel.classList.add('hidden');
+    btn.style.display = 'block';
+  }
   updateGlobe();
   renderAircraftList();
   notify(showOtherPlanes ? 'Showing all aircraft' : 'Showing schedule only');
