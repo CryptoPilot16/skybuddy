@@ -455,8 +455,50 @@ function cycleDataSource() {
 
 // ─── Data Fetching ───
 async function fetchAircraft() {
-  // When watchlist is active, fetch globally (no bounding box) to find all watched aircraft worldwide
-  const rect = watchlistActive ? null : viewer.camera.computeViewRectangle();
+  // When watchlist is active, use wide-radius search to find all watched aircraft worldwide
+  if (watchlistActive && watchlist.length > 0) {
+    try {
+      // Search from multiple points to get global coverage
+      const searchPoints = [
+        { lat: 42.23, lon: -83.53 },  // KYIP (Kalitta HQ / North America)
+        { lat: 51.47, lon: -0.45 },   // EGLL (Europe)
+        { lat: 25.25, lon: 55.37 },   // OMDB (Middle East / Asia)
+      ];
+      const allResults = {};
+      const fetches = searchPoints.map(async (pt) => {
+        try {
+          const resp = await fetch(`https://api.adsb.lol/v2/lat/${pt.lat}/lon/${pt.lon}/dist/5000`);
+          if (!resp.ok) return;
+          const data = await resp.json();
+          const parsed = parseAdsbLolData(data);
+          // Only keep aircraft that pass watchlist
+          Object.entries(parsed).forEach(([icao, ac]) => {
+            if (passesWatchlist(ac)) allResults[icao] = ac;
+          });
+        } catch (e) { console.warn('Watchlist search failed for point', pt, e); }
+      });
+      await Promise.all(fetches);
+
+      document.getElementById('pulseDot').style.background = Object.keys(allResults).length > 0 ? 'var(--accent)' : 'var(--warn)';
+      const now = new Date();
+      document.getElementById('lastUpdate').textContent = now.toTimeString().split(' ')[0];
+      document.getElementById('acCount').textContent = Object.keys(allResults).length;
+      document.getElementById('dataSource').textContent = 'ADSB.LOL';
+      stats.totalTracked = Math.max(stats.totalTracked, Object.keys(allResults).length);
+      aircraftData = allResults;
+      updateGlobe();
+      renderAircraftList();
+      if (selectedAc && aircraftData[selectedAc]) updateDetailPanel(aircraftData[selectedAc]);
+      if (Object.keys(allResults).length === 0) {
+        notify('No watched aircraft airborne right now');
+      }
+      return;
+    } catch (e) {
+      console.warn('Watchlist global search failed, falling back', e);
+    }
+  }
+
+  const rect = viewer.camera.computeViewRectangle();
   const sources = dataSourceMode === 'opensky'
     ? ['opensky', 'adsbx']
     : ['adsbx', 'opensky'];
