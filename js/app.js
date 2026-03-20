@@ -276,14 +276,14 @@ function loadWatchlist() {
     if (saved) {
       watchlist = JSON.parse(saved);
     } else {
-      // First visit defaults: Kalitta Air + Atlas Air
-      watchlist = ['CKS', 'GTI'];
-      watchlistActive = true;
-      saveWatchlist();
-      saveWatchlistActive();
+      watchlist = ['CKS'];
     }
-    const active = localStorage.getItem('skybuddy_watchlist_active');
-    if (active !== null) watchlistActive = active === 'true';
+    // Ensure CKS is always in watchlist
+    if (!watchlist.includes('CKS')) watchlist.unshift('CKS');
+    saveWatchlist();
+    // Watchlist is ALWAYS active — ignore any saved 'false' state
+    watchlistActive = true;
+    saveWatchlistActive();
   } catch (e) {}
 }
 function saveWatchlistActive() {
@@ -1823,8 +1823,8 @@ function updateGlobe() {
       return;
     }
 
-    // If schedule has entries and "show others" is off, only show scheduled + watchlisted aircraft
-    if (schedule.length > 0 && !showOtherPlanes && !isScheduledAircraft(ac.icao) && !passesWatchlist(ac)) {
+    // Only show watchlisted + scheduled aircraft (unless "show others" is on)
+    if (!showOtherPlanes && !isScheduledAircraft(ac.icao) && !passesWatchlist(ac)) {
       if (aircraftEntities[ac.icao]) {
         viewer.entities.remove(aircraftEntities[ac.icao]);
         delete aircraftEntities[ac.icao];
@@ -2001,7 +2001,7 @@ function renderAircraftList() {
 
   const sorted = Object.values(aircraftData)
     .filter(ac => ac.lat && ac.lon && (watchlistActive ? true : !ac.onGround) && passesAltFilter(ac) && passesConflictFilter(ac))
-    .filter(ac => schedule.length === 0 || showOtherPlanes || isScheduledAircraft(ac.icao) || passesWatchlist(ac))
+    .filter(ac => showOtherPlanes || isScheduledAircraft(ac.icao) || passesWatchlist(ac))
     .filter(ac =>
       !filter ||
       (ac.callsign && ac.callsign.toUpperCase().includes(filter)) ||
