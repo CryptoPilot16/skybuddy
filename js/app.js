@@ -2574,26 +2574,11 @@ function toggleConflicts() {
   showConflicts = !showConflicts;
   document.getElementById('btnConflicts').classList.toggle('active', showConflicts);
   document.getElementById('conflictLegend').style.display = showConflicts ? 'block' : 'none';
-  // Auto-enable war filter when conflicts are shown
-  conflictFilterActive = showConflicts;
+  // Conflicts overlay is additive — does NOT filter aircraft
   if (showConflicts) {
     drawConflicts();
-    // Rebuild globe with conflict filter active
-    Object.keys(aircraftEntities).forEach(icao => {
-      viewer.entities.remove(aircraftEntities[icao]);
-      delete aircraftEntities[icao];
-    });
-    updateGlobe();
-    renderAircraftList();
   } else {
     clearConflicts();
-    // Rebuild globe without conflict filter
-    Object.keys(aircraftEntities).forEach(icao => {
-      viewer.entities.remove(aircraftEntities[icao]);
-      delete aircraftEntities[icao];
-    });
-    updateGlobe();
-    renderAircraftList();
   }
   notify('Conflict zones ' + (showConflicts ? 'ON — war filter active' : 'OFF'));
 }
