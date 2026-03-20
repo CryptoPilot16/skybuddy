@@ -2031,6 +2031,11 @@ function selectAircraft(icao) {
   const ac = aircraftData[icao];
   if (!ac) return;
 
+  // On mobile, close side panel to reveal the map zoom
+  if (isMobile()) {
+    document.getElementById('sidePanel').classList.add('hidden');
+  }
+
   updateDetailPanel(ac);
   const dp = document.getElementById('detailPanel');
   dp.classList.remove('minimized');
