@@ -72,32 +72,17 @@
     </div>
   </div>
 
-  <!-- Unified Left Panel: Watchlist + Aircraft List -->
+  <!-- Side Panel: Aircraft List -->
   <div class="side-panel" id="sidePanel">
-    <!-- Watchlist section -->
-    <div class="wl-header">
-      <span class="wl-title">MY WATCHLIST</span>
-      <span class="wl-status" id="watchlistStatus">OFF</span>
+    <div class="panel-header">
+      <span class="panel-title">Nearby Aircraft</span>
       <button class="panel-close-btn" onclick="toggleSidePanel()">✕</button>
-    </div>
-    <div class="wl-add-row">
-      <input type="text" class="wl-input" id="wlInput" placeholder="e.g. CKS, GTI, FDX, N742CK..." onkeydown="if(event.key==='Enter'){addToWatchlist(this.value);this.value='';}">
-      <button class="wl-add-btn" onclick="addToWatchlist(document.getElementById('wlInput').value);document.getElementById('wlInput').value='';">+</button>
-    </div>
-    <div class="wl-items" id="watchlistItems"></div>
-    <button class="wl-toggle-btn" onclick="toggleWatchlistActive()" id="wlToggleBtn">Toggle Filter ON/OFF</button>
-    <!-- Aircraft list section -->
-    <div class="panel-header" style="border-top: 1px solid var(--border);">
-      <span class="panel-title">Aircraft</span>
     </div>
     <input type="text" class="search-box" id="searchBox" placeholder="Search callsign / ICAO / country...">
     <div class="aircraft-list" id="aircraftList"></div>
   </div>
 
   <button class="toggle-panel-btn" id="toggleBtn" onclick="showSidePanel()">☰</button>
-
-  <!-- Watchlist Panel (hidden alias for JS compat) -->
-  <div id="watchlistPanel" style="display:none"></div>
 
   <!-- Detail Panel: Selected Aircraft -->
   <div class="detail-panel" id="detailPanel">
@@ -134,6 +119,22 @@
     <div class="alt-row"><div class="alt-dot" style="background:#ff9f1c"></div><span style="color:var(--text-dim)">15K – 30K ft</span></div>
     <div class="alt-row"><div class="alt-dot" style="background:#ff6b35"></div><span style="color:var(--text-dim)">&gt; 30,000 ft</span></div>
     <div class="alt-row"><div class="alt-dot" style="background:#5a6a7a"></div><span style="color:var(--text-dim)">On ground</span></div>
+  </div>
+
+  <!-- Watchlist Panel -->
+  <div class="watchlist-panel" id="watchlistPanel">
+    <div class="wl-header">
+      <span class="wl-title">MY WATCHLIST</span>
+      <span class="wl-status" id="watchlistStatus">OFF</span>
+      <button class="panel-close-btn" onclick="toggleWatchlistPanel()">✕</button>
+    </div>
+    <div class="wl-add-row">
+      <input type="text" class="wl-input" id="wlInput" placeholder="e.g. CKS, GTI, FDX, N742CK..." onkeydown="if(event.key==='Enter'){addToWatchlist(this.value);this.value='';}">
+      <button class="wl-add-btn" onclick="addToWatchlist(document.getElementById('wlInput').value);document.getElementById('wlInput').value='';">+</button>
+    </div>
+    <div class="wl-hint">Callsign prefix, ICAO hex, or country. Press Enter to add.</div>
+    <div class="wl-items" id="watchlistItems"></div>
+    <button class="wl-toggle-btn" onclick="toggleWatchlistActive()" id="wlToggleBtn">Toggle Filter ON/OFF</button>
   </div>
 
   <!-- Schedule Panel -->

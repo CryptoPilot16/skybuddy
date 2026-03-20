@@ -333,11 +333,9 @@ function passesWatchlist(ac) {
 }
 
 function toggleWatchlistPanel() {
-  // Watchlist is now inside the side panel — toggle that instead
-  const panel = document.getElementById('sidePanel');
-  const btn = document.getElementById('toggleBtn');
-  panel.classList.toggle('hidden');
-  btn.style.display = panel.classList.contains('hidden') ? 'block' : 'none';
+  document.getElementById('settingsPanel').classList.remove('visible');
+  const panel = document.getElementById('watchlistPanel');
+  panel.classList.toggle('visible');
 }
 
 function renderWatchlistPanel() {
@@ -937,9 +935,9 @@ function initApp() {
     document.getElementById('loadingText').textContent = 'Fetching aircraft...';
     stats.sessionStart = new Date();
 
-    // Side panel (watchlist + aircraft list) visible by default
-    document.getElementById('sidePanel').classList.remove('hidden');
-    document.getElementById('toggleBtn').style.display = 'none';
+    // Start with side panel (aircraft list) hidden — schedule + minimap are the defaults
+    document.getElementById('sidePanel').classList.add('hidden');
+    document.getElementById('toggleBtn').style.display = 'block';
 
     fetchAircraft().then(() => {
       const overlay = document.getElementById('loadingOverlay');
@@ -982,9 +980,9 @@ function tryAutoLogin() {
   }
   loadSchedule();
   renderSchedulePanel();
-  // Schedule and side panel (watchlist + aircraft list) always visible on load
+  // Schedule and watchlist panels always visible on load
   document.getElementById('schedulePanel').classList.add('visible');
-  document.getElementById('sidePanel').classList.add('visible');
+  document.getElementById('watchlistPanel').classList.add('visible');
 
   if (token) {
     initApp();
