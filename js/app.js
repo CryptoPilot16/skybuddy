@@ -788,9 +788,21 @@ function initApp() {
     viewer.scene.globe.maximumScreenSpaceError = mobile ? 4 : 1.5;
     viewer.scene.fxaa = !mobile;
     viewer.scene.postProcessStages.ambientOcclusion.enabled = false;
-    viewer.scene.globe.depthTestAgainstTerrain = true;
+    viewer.scene.globe.depthTestAgainstTerrain = false;
     viewer.scene.skyAtmosphere.brightnessShift = 0.02;
     viewer.scene.skyAtmosphere.saturationShift = 0.1;
+
+    // Fluid camera movement — Google Earth style
+    const ssc = viewer.scene.screenSpaceCameraController;
+    ssc.enableCollisionDetection = false; // don't stick to terrain
+    ssc.minimumZoomDistance = 100;        // allow close zoom
+    ssc.maximumZoomDistance = 50000000;   // zoom out to see full globe
+    ssc.inertiaZoom = 0.7;               // smooth zoom momentum
+    ssc.inertiaSpin = 0.9;               // smooth pan/spin momentum
+    ssc.inertiaTranslate = 0.9;          // smooth translate momentum
+    ssc.tiltEventTypes = [Cesium.CameraEventType.RIGHT_DRAG, Cesium.CameraEventType.PINCH,
+      { eventType: Cesium.CameraEventType.LEFT_DRAG, modifier: Cesium.KeyboardEventModifier.CTRL }];
+    ssc.zoomEventTypes = [Cesium.CameraEventType.MIDDLE_DRAG, Cesium.CameraEventType.WHEEL, Cesium.CameraEventType.PINCH];
     if (mobile) {
       viewer.resolutionScale = 0.75; // render at 75% for mobile perf
       viewer.scene.requestRenderMode = true;
