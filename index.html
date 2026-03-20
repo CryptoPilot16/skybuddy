@@ -61,7 +61,6 @@
       <div class="stat">
         <div class="pulse-dot" id="pulseDot"></div>
       </div>
-      <button class="settings-btn" onclick="toggleSettingsPanel()" title="Settings">⚙</button>
       <button class="compass-btn" onclick="orientNorthUp()" title="North Up">N↑</button>
     </div>
   </div>
@@ -141,7 +140,6 @@
   <div class="schedule-panel" id="schedulePanel">
     <div class="sched-header">
       <span class="sched-title">MY SCHEDULE</span>
-      <button class="panel-close-btn" onclick="toggleSchedulePanel()">✕</button>
     </div>
     <div class="sched-add-row">
       <input type="text" class="sched-input" id="schedFlight" placeholder="Callsign (CKS401)">
@@ -222,9 +220,8 @@
 
   <!-- Bottom Controls -->
   <div class="bottom-bar">
-    <button class="ctrl-btn" id="btnSchedule" onclick="toggleSchedulePanel()"><span class="btn-icon">✈</span><span class="btn-label">Schedule</span></button>
-    <button class="ctrl-btn" id="btnWatchlist" onclick="toggleWatchlistPanel()"><span class="btn-icon">★</span><span class="btn-label">Watch</span></button>
-    <button class="ctrl-btn active" id="btnLabels" onclick="toggleLabels()"><span class="btn-icon">Aa</span><span class="btn-label">Labels</span></button>
+    <button class="ctrl-btn" id="btnOthers" onclick="toggleOtherPlanes()"><span class="btn-icon">👁</span><span class="btn-label">Others</span></button>
+    <button class="ctrl-btn" id="btnLabels" onclick="toggleLabels()"><span class="btn-icon">Aa</span><span class="btn-label">Labels</span></button>
     <button class="ctrl-btn" id="btnConflicts" onclick="toggleConflicts()"><span class="btn-icon">⚠</span><span class="btn-label">Conflicts</span></button>
     <button class="ctrl-btn" onclick="refreshData()"><span class="btn-icon">↻</span><span class="btn-label">Refresh</span></button>
   </div>

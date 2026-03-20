@@ -1199,33 +1199,31 @@ body {
     min-width: 36px; min-height: 36px;
   }
 
-  /* Bottom bar: icon buttons that fit in one row */
+  /* Control bar: moved to top on mobile */
   .bottom-bar {
-    bottom: 0; left: 0; right: 0;
+    top: 36px; bottom: auto;
+    left: 0; right: 0;
     transform: none;
-    padding: 6px 4px;
-    padding-bottom: max(12px, env(safe-area-inset-bottom));
-    gap: 4px;
+    padding: 4px 6px;
+    gap: 3px;
     overflow-x: visible;
-    background: var(--panel);
-    border-top: 1px solid var(--border);
-    z-index: 60;
+    background: rgba(10, 12, 16, 0.9);
+    border-bottom: 1px solid var(--border);
+    border-top: none;
+    z-index: 55;
     justify-content: space-evenly;
     flex-wrap: nowrap;
   }
-  .btn-icon { display: block; font-size: 16px; line-height: 1; }
-  .btn-label { display: block; font-size: 7px; margin-top: 2px; letter-spacing: 0.5px; }
+  .btn-icon { display: none; }
+  .btn-label { display: inline; font-size: 9px; letter-spacing: 0.5px; }
   .ctrl-btn {
-    padding: 6px 0;
-    font-size: 10px;
-    min-height: 44px;
-    min-width: 44px;
+    padding: 8px 6px;
+    font-size: 9px;
+    min-height: 32px;
     flex: 1;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0;
   }
 
   /* Toggle button: larger for mobile */
@@ -1240,7 +1238,7 @@ body {
   .minimap-container {
     display: block;
     width: 140px; height: 85px;
-    bottom: 52px; left: 4px;
+    bottom: 8px; left: 4px;
     z-index: 50;
     opacity: 0.85;
   }
@@ -1273,7 +1271,7 @@ body {
     width: calc(100% - 8px);
     left: 4px;
     transform: none;
-    bottom: 52px;
+    bottom: 8px;
   }
   .alt-filter-row input[type="range"]::-webkit-slider-thumb {
     width: 24px; height: 24px;
@@ -1332,7 +1330,7 @@ body {
   /* Webcam PiP: full-width bottom on mobile */
   .webcam-pip {
     top: auto;
-    bottom: 52px;
+    bottom: 0;
     right: 0; left: 0;
     width: 100%;
     height: 200px;
@@ -1344,11 +1342,11 @@ body {
   .webcam-title { font-size: 11px; }
   .webcam-btn { min-height: 32px; min-width: 32px; font-size: 12px; padding: 4px 8px; }
 
-  /* Schedule panel: full-width on mobile, fixed, no drag */
+  /* Schedule panel: full-width on mobile, below control bar, no drag */
   .schedule-panel {
     width: 100%; right: 0; left: 0;
-    top: 36px;
-    max-height: 70vh;
+    top: 72px;
+    max-height: 60vh;
     border: none; border-top: 1px solid var(--border);
     z-index: 70;
     -webkit-overflow-scrolling: touch;
@@ -1357,18 +1355,18 @@ body {
   .schedule-panel .sched-header { cursor: default; }
   /* Hide manual add rows on mobile — image import only */
   .schedule-panel .sched-add-row { display: none !important; }
-  .sched-items { max-height: 50vh; overflow-y: auto; flex: 1; }
-  .sched-import-btn { min-height: 48px !important; font-size: 12px !important; }
-  .sched-item { padding: 12px; }
-  .sched-flight { font-size: 16px; }
-  .sched-route { font-size: 13px; }
+  .sched-items { max-height: 45vh; overflow-y: auto; flex: 1; }
+  .sched-import-btn { min-height: 44px !important; font-size: 11px !important; }
+  .sched-item { padding: 10px; }
+  .sched-flight { font-size: 15px; }
+  .sched-route { font-size: 12px; }
   .sched-time { font-size: 10px; }
   .sched-remove { font-size: 12px; padding: 4px 8px; min-width: 32px; }
   .sched-locate { font-size: 11px; padding: 6px 12px; min-height: 36px; }
 
-  /* Flight banner: prominent top strip on mobile */
+  /* Flight banner: prominent strip below control bar on mobile */
   .flight-banner {
-    top: 36px; left: 0; right: 0;
+    top: 72px; left: 0; right: 0;
     min-width: auto;
     padding: 10px 14px 12px;
     border-left: none;

@@ -7,7 +7,7 @@ let aircraftEntities = {};
 let aircraftData = {};
 let selectedAc = null;
 let trackingAc = null;
-let showLabels = true;
+let showLabels = false;
 let showPaths = false;
 let osUser = '';
 let osPass = '';
@@ -36,6 +36,7 @@ let showConflicts = false; // conflict zone overlay toggle
 let conflictDataSource = null; // Cesium GeoJsonDataSource for conflict zones
 let conflictFilterActive = false; // filter aircraft from conflict countries
 let hexdbCache = {}; // icao24 → hexdb.io aircraft info (registration, owner, etc.)
+let showOtherPlanes = false; // show non-scheduled aircraft
 
 // ─── Config ───
 const CONFIG = {
@@ -508,6 +509,14 @@ function addScheduleFromSettings() {
   document.getElementById('settingsSchedOnboard').checked = false;
 }
 
+function toggleOtherPlanes() {
+  showOtherPlanes = !showOtherPlanes;
+  document.getElementById('btnOthers').classList.toggle('active', showOtherPlanes);
+  updateGlobe();
+  renderAircraftList();
+  notify(showOtherPlanes ? 'Showing all aircraft' : 'Showing schedule only');
+}
+
 function toggleSchedulePanel() {
   document.getElementById('settingsPanel').classList.remove('visible');
   document.getElementById('watchlistPanel').classList.remove('visible');
@@ -547,7 +556,6 @@ function locateScheduleFlight(schedId) {
   const icao = scheduleMatches.get(schedId);
   if (icao && aircraftData[icao]) {
     selectAircraft(icao);
-    if (window.innerWidth <= 480) document.getElementById('schedulePanel').classList.remove('visible');
   }
 }
 
@@ -926,11 +934,9 @@ function initApp() {
     document.getElementById('loadingText').textContent = 'Fetching aircraft...';
     stats.sessionStart = new Date();
 
-    // On mobile, start with side panel hidden for full 3D view
-    if (isMobile()) {
-      document.getElementById('sidePanel').classList.add('hidden');
-      document.getElementById('toggleBtn').style.display = 'block';
-    }
+    // Start with side panel (aircraft list) hidden — schedule + minimap are the defaults
+    document.getElementById('sidePanel').classList.add('hidden');
+    document.getElementById('toggleBtn').style.display = 'block';
 
     fetchAircraft().then(() => {
       const overlay = document.getElementById('loadingOverlay');
@@ -969,6 +975,8 @@ function tryAutoLogin() {
   document.getElementById('watchlistStatus').style.color = watchlistActive ? 'var(--accent)' : 'var(--text-dim)';
   loadSchedule();
   renderSchedulePanel();
+  // Schedule panel always visible on load
+  document.getElementById('schedulePanel').classList.add('visible');
 
   if (token) {
     initApp();
@@ -1376,6 +1384,38 @@ async function fetchAircraft() {
 }
 
 // ─── Label Builder ───
+function declutterLabels() {
+  // Collect visible aircraft screen positions and stagger overlapping labels
+  const entries = [];
+  for (const [icao, entity] of Object.entries(aircraftEntities)) {
+    if (!entity.label || !entity.label.show || !entity.label.show.getValue()) continue;
+    const ac = aircraftData[icao];
+    if (!ac || !ac.lat || !ac.lon) continue;
+    entries.push({ icao, entity, lat: ac.lat, lon: ac.lon });
+  }
+
+  // Group aircraft that are close together (within ~0.5° ≈ 55km)
+  const PROXIMITY = 0.5;
+  const assigned = new Set();
+  for (let i = 0; i < entries.length; i++) {
+    if (assigned.has(i)) continue;
+    const cluster = [i];
+    for (let j = i + 1; j < entries.length; j++) {
+      if (assigned.has(j)) continue;
+      const dLat = Math.abs(entries[i].lat - entries[j].lat);
+      const dLon = Math.abs(entries[i].lon - entries[j].lon);
+      if (dLat < PROXIMITY && dLon < PROXIMITY) cluster.push(j);
+    }
+    // Stagger labels vertically within cluster
+    const offsets = [-60, -100, -140, -180, -220, -260];
+    cluster.forEach((idx, rank) => {
+      assigned.add(idx);
+      const yOff = offsets[rank] || offsets[offsets.length - 1] - (rank - offsets.length + 1) * 40;
+      entries[idx].entity.label.pixelOffset = new Cesium.Cartesian2(0, yOff);
+    });
+  }
+}
+
 function buildLabelText(ac) {
   const cs = ac.callsign || ac.icao;
   const type = ac.acType ? `[${ac.acType}]` : '';
@@ -1758,8 +1798,8 @@ function updateGlobe() {
       return;
     }
 
-    // If schedule has entries, only show scheduled aircraft (and watchlisted ones)
-    if (schedule.length > 0 && !isScheduledAircraft(ac.icao) && !passesWatchlist(ac)) {
+    // If schedule has entries and "show others" is off, only show scheduled + watchlisted aircraft
+    if (schedule.length > 0 && !showOtherPlanes && !isScheduledAircraft(ac.icao) && !passesWatchlist(ac)) {
       if (aircraftEntities[ac.icao]) {
         viewer.entities.remove(aircraftEntities[ac.icao]);
         delete aircraftEntities[ac.icao];
@@ -1841,8 +1881,8 @@ function updateGlobe() {
         orientation: orientation,
         model: {
           uri: modelUri,
-          minimumPixelSize: isMobile() ? 120 : 120,
-          maximumScale: isMobile() ? 1200 : 1200,
+          minimumPixelSize: isMobile() ? 160 : 200,
+          maximumScale: isMobile() ? 2000 : 3000,
           scale: 1.0,
           silhouetteColor: isOnboardAircraft(ac.icao) ? Cesium.Color.fromCssColorString('#DAA520').withAlpha(0.8) : isScheduledAircraft(ac.icao) ? Cesium.Color.fromCssColorString('#00ff88').withAlpha(0.6) : Cesium.Color.fromCssColorString('#00ff88').withAlpha(0.3),
           silhouetteSize: isOnboardAircraft(ac.icao) ? (isMobile() ? 2.0 : 3.0) : isScheduledAircraft(ac.icao) ? (isMobile() ? 1.5 : 2.0) : (isMobile() ? 0.5 : 1.0),
@@ -1871,6 +1911,9 @@ function updateGlobe() {
       aircraftEntities[ac.icao] = entity;
     }
   });
+
+  // Declutter overlapping labels
+  declutterLabels();
 
   // Redraw predictions if active
   if (showPrediction) drawPredictions();
@@ -1933,7 +1976,7 @@ function renderAircraftList() {
 
   const sorted = Object.values(aircraftData)
     .filter(ac => ac.lat && ac.lon && (watchlistActive ? true : !ac.onGround) && passesAltFilter(ac) && passesConflictFilter(ac))
-    .filter(ac => schedule.length === 0 || isScheduledAircraft(ac.icao) || passesWatchlist(ac))
+    .filter(ac => schedule.length === 0 || showOtherPlanes || isScheduledAircraft(ac.icao) || passesWatchlist(ac))
     .filter(ac =>
       !filter ||
       (ac.callsign && ac.callsign.toUpperCase().includes(filter)) ||
