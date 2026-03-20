@@ -1232,7 +1232,7 @@ body {
   .detail-field .val { font-size: 13px; }
   .detail-field label { font-size: 7px; }
   .detail-actions { flex-wrap: wrap; gap: 6px; }
-  .detail-actions .btn-track { min-height: 44px; font-size: 11px; flex: 1 1 45%; }
+  .detail-actions .btn-track { min-height: 40px; font-size: 10px; flex: 1 1 30%; padding: 6px 4px; }
   .detail-close { top: 10px; right: 10px; font-size: 18px; padding: 6px 10px; min-width: 36px; min-height: 36px; }
 
   /* ── Alt filter ── */

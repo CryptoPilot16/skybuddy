@@ -2428,6 +2428,21 @@ function toggleTracking() {
   if (trackingAc) notify('Tracking ' + (aircraftData[trackingAc]?.callsign || trackingAc));
 }
 
+function zoomToSelected() {
+  if (!selectedAc) return;
+  const ac = aircraftData[selectedAc];
+  if (!ac || !ac.lat || !ac.lon) return;
+  const alt = ac.alt || ac.geoAlt || 10000;
+  // Zoom to 5x the aircraft altitude for a close view, min 2km
+  const camHeight = Math.max(alt * 1.5, 2000);
+  viewer.camera.flyTo({
+    destination: Cesium.Cartesian3.fromDegrees(ac.lon, ac.lat, camHeight),
+    orientation: { heading: Cesium.Math.toRadians(ac.heading || 0), pitch: Cesium.Math.toRadians(-35), roll: 0 },
+    duration: 1.5,
+  });
+  notify('Zoom to ' + (ac.callsign || ac.icao));
+}
+
 function toggleOrbitMode() {
   if (!selectedAc) return;
 
