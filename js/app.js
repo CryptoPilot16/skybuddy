@@ -795,13 +795,16 @@ function initApp() {
     // Fluid camera movement — Google Earth style
     const ssc = viewer.scene.screenSpaceCameraController;
     ssc.enableCollisionDetection = false; // don't stick to terrain
-    ssc.minimumZoomDistance = 100;        // allow close zoom
+    ssc.minimumZoomDistance = 50;         // allow very close zoom
     ssc.maximumZoomDistance = 50000000;   // zoom out to see full globe
-    ssc.inertiaZoom = 0.7;               // smooth zoom momentum
-    ssc.inertiaSpin = 0.9;               // smooth pan/spin momentum
-    ssc.inertiaTranslate = 0.9;          // smooth translate momentum
+    ssc.inertiaZoom = 0.85;              // smooth zoom momentum (Google Earth feel)
+    ssc.inertiaSpin = 0.92;              // smooth pan/spin momentum
+    ssc.inertiaTranslate = 0.92;         // smooth translate momentum
+    ssc.zoomEventTypes = [Cesium.CameraEventType.MIDDLE_DRAG, Cesium.CameraEventType.WHEEL, Cesium.CameraEventType.PINCH];
     ssc.tiltEventTypes = [Cesium.CameraEventType.RIGHT_DRAG, Cesium.CameraEventType.PINCH,
       { eventType: Cesium.CameraEventType.LEFT_DRAG, modifier: Cesium.KeyboardEventModifier.CTRL }];
+    // Reduce zoom speed to feel less jerky
+    ssc._zoomFactor = 5.0;
     ssc.zoomEventTypes = [Cesium.CameraEventType.MIDDLE_DRAG, Cesium.CameraEventType.WHEEL, Cesium.CameraEventType.PINCH];
     if (mobile) {
       viewer.resolutionScale = 0.75; // render at 75% for mobile perf
@@ -1458,8 +1461,8 @@ function updateGlobe() {
         orientation: orientation,
         model: {
           uri: modelUri,
-          minimumPixelSize: isMobile() ? 64 : 80,
-          maximumScale: isMobile() ? 500 : 800,
+          minimumPixelSize: isMobile() ? 80 : 120,
+          maximumScale: isMobile() ? 800 : 1200,
           scale: 1.0,
           silhouetteColor: isOnboardAircraft(ac.icao) ? Cesium.Color.fromCssColorString('#DAA520').withAlpha(0.8) : isScheduledAircraft(ac.icao) ? Cesium.Color.fromCssColorString('#00ff88').withAlpha(0.6) : Cesium.Color.fromCssColorString('#00ff88').withAlpha(0.3),
           silhouetteSize: isOnboardAircraft(ac.icao) ? (isMobile() ? 2.0 : 3.0) : isScheduledAircraft(ac.icao) ? (isMobile() ? 1.5 : 2.0) : (isMobile() ? 0.5 : 1.0),
