@@ -2634,11 +2634,12 @@ async function drawConflicts() {
       entity._isConflict = !!conflict;
 
       if (conflict && entity.polygon) {
-        // Conflict country — red fill, no outline (click interior only)
+        // Conflict country — red fill with outline
         const alpha = conflict.severity === 'war' ? 0.25 :
                       conflict.severity === 'high' ? 0.18 : 0.12;
         entity.polygon.material = Cesium.Color.RED.withAlpha(alpha);
-        entity.polygon.outline = false;
+        entity.polygon.outline = true;
+        entity.polygon.outlineColor = Cesium.Color.RED.withAlpha(0.6);
         entity.polygon.height = 0;
         entity._conflictSeverity = conflict.severity;
       } else if (entity.polygon) {
