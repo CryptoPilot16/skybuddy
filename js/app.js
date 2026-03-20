@@ -108,34 +108,42 @@ const msToKts = (ms) => ms ? Math.round(ms * 1.94384) : 0;
 const mToFt = (m) => m ? Math.round(m * 3.28084) : 0;
 const msToFpm = (ms) => ms ? Math.round(ms * 196.85) : 0;
 
-// ─── Aircraft Type → Model Mapping ───
+// ─── Aircraft Type → Model Mapping (FR24 models) ───
 const MODEL_MAP = {
-  // 747 variants
-  'B741': 'assets/b747.glb', 'B742': 'assets/b747.glb', 'B743': 'assets/b747.glb',
-  'B744': 'assets/b747.glb', 'B748': 'assets/b747.glb', 'B74S': 'assets/b747.glb',
-  'B74D': 'assets/b747.glb', 'B74R': 'assets/b747.glb',
-  // 777 variants
-  'B772': 'assets/b777.glb', 'B773': 'assets/b777.glb', 'B77L': 'assets/b777.glb',
-  'B77W': 'assets/b777.glb', 'B778': 'assets/b777.glb', 'B779': 'assets/b777.glb',
-  // Wide-body
-  'A332': 'assets/wide.glb', 'A333': 'assets/wide.glb', 'A338': 'assets/wide.glb',
-  'A339': 'assets/wide.glb', 'A342': 'assets/wide.glb', 'A343': 'assets/wide.glb',
-  'A345': 'assets/wide.glb', 'A346': 'assets/wide.glb',
-  'A359': 'assets/wide.glb', 'A35K': 'assets/wide.glb',
-  'B762': 'assets/wide.glb', 'B763': 'assets/wide.glb', 'B764': 'assets/wide.glb',
-  'B788': 'assets/wide.glb', 'B789': 'assets/wide.glb', 'B78X': 'assets/wide.glb',
-  'MD11': 'assets/wide.glb', 'DC10': 'assets/wide.glb',
+  // 747 variants → b744.glb (747-400) or b748.glb (747-8)
+  'B741': 'assets/b744.glb', 'B742': 'assets/b744.glb', 'B743': 'assets/b744.glb',
+  'B744': 'assets/b744.glb', 'B74S': 'assets/b744.glb', 'B74D': 'assets/b744.glb',
+  'B74R': 'assets/b744.glb', 'B748': 'assets/b748.glb',
+  // 777 variants → b772.glb (777-200) or b773.glb (777-300)
+  'B772': 'assets/b772.glb', 'B77L': 'assets/b772.glb',
+  'B773': 'assets/b773.glb', 'B77W': 'assets/b773.glb',
+  'B778': 'assets/b773.glb', 'B779': 'assets/b773.glb',
+  // Wide-body (A330/A340/A350/767/787/MD11)
+  'A332': 'assets/a333.glb', 'A333': 'assets/a333.glb', 'A338': 'assets/a333.glb',
+  'A339': 'assets/a333.glb', 'A342': 'assets/a333.glb', 'A343': 'assets/a333.glb',
+  'A345': 'assets/a333.glb', 'A346': 'assets/a333.glb',
+  'A359': 'assets/a333.glb', 'A35K': 'assets/a333.glb',
+  'B762': 'assets/a333.glb', 'B763': 'assets/a333.glb', 'B764': 'assets/a333.glb',
+  'B788': 'assets/a333.glb', 'B789': 'assets/a333.glb', 'B78X': 'assets/a333.glb',
+  'MD11': 'assets/a333.glb', 'DC10': 'assets/a333.glb',
+  // Narrow-body
+  'A318': 'assets/a320.glb', 'A319': 'assets/a320.glb', 'A320': 'assets/a320.glb',
+  'A321': 'assets/a320.glb', 'A20N': 'assets/a320.glb', 'A21N': 'assets/a320.glb',
+  'B731': 'assets/b738.glb', 'B732': 'assets/b738.glb', 'B733': 'assets/b738.glb',
+  'B734': 'assets/b738.glb', 'B735': 'assets/b738.glb', 'B736': 'assets/b738.glb',
+  'B737': 'assets/b738.glb', 'B738': 'assets/b738.glb', 'B739': 'assets/b738.glb',
+  'B38M': 'assets/b738.glb', 'B39M': 'assets/b738.glb',
 };
 
 function getModelUri(typeCode) {
-  if (!typeCode) return 'assets/narrow.glb';
+  if (!typeCode) return 'assets/a320.glb';
   const code = typeCode.toUpperCase();
   if (MODEL_MAP[code]) return MODEL_MAP[code];
   // Guess by prefix
-  if (code.startsWith('B74')) return 'assets/b747.glb';
-  if (code.startsWith('B77')) return 'assets/b777.glb';
-  if (code.startsWith('A3') || code.startsWith('B76') || code.startsWith('B78')) return 'assets/wide.glb';
-  return 'assets/narrow.glb';
+  if (code.startsWith('B74')) return 'assets/b744.glb';
+  if (code.startsWith('B77')) return 'assets/b772.glb';
+  if (code.startsWith('A3') || code.startsWith('B76') || code.startsWith('B78')) return 'assets/a333.glb';
+  return 'assets/a320.glb';
 }
 
 // ─── Notifications ───
@@ -641,14 +649,11 @@ function updateGlobe() {
         orientation: orientation,
         model: {
           uri: modelUri,
-          minimumPixelSize: 64,
-          maximumScale: 500,
-          scale: 3.0,
-          color: Cesium.Color.fromCssColorString('#f0f0f0'),
-          colorBlendMode: Cesium.ColorBlendMode.MIX,
-          colorBlendAmount: 0.85,
-          silhouetteColor: Cesium.Color.fromCssColorString('#DAA520').withAlpha(0.6),
-          silhouetteSize: 2.5,
+          minimumPixelSize: 32,
+          maximumScale: 80,
+          scale: 1.0,
+          silhouetteColor: Cesium.Color.fromCssColorString('#00ff88').withAlpha(0.3),
+          silhouetteSize: 1.0,
         },
         label: {
           text: ac.callsign || ac.icao,
@@ -1089,13 +1094,22 @@ function drawAirports() {
 }
 
 // ─── Minimap ───
-const MINIMAP_COASTLINE = null; // We'll draw a simple world outline
 let minimapCtx = null;
+let worldPolygons = null;
 
-function initMinimap() {
+async function initMinimap() {
   const canvas = document.getElementById('minimapCanvas');
   if (!canvas) return;
   minimapCtx = canvas.getContext('2d');
+
+  // Load accurate world coastline data
+  try {
+    const resp = await fetch('assets/world.json');
+    worldPolygons = await resp.json();
+  } catch (e) {
+    console.warn('Minimap: failed to load world data', e);
+    worldPolygons = [];
+  }
   renderMinimap();
 }
 
@@ -1106,75 +1120,57 @@ function renderMinimap() {
   const h = canvas.height;
 
   // Clear
-  minimapCtx.fillStyle = '#0c0c0c';
+  minimapCtx.fillStyle = '#0a0a0a';
   minimapCtx.fillRect(0, 0, w, h);
 
-  // Draw simple world grid
-  minimapCtx.strokeStyle = 'rgba(0, 255, 136, 0.06)';
+  // Grid
+  minimapCtx.strokeStyle = 'rgba(0, 255, 136, 0.04)';
   minimapCtx.lineWidth = 0.5;
   for (let lat = -60; lat <= 60; lat += 30) {
     const y = h / 2 - (lat / 90) * (h / 2);
-    minimapCtx.beginPath();
-    minimapCtx.moveTo(0, y);
-    minimapCtx.lineTo(w, y);
-    minimapCtx.stroke();
+    minimapCtx.beginPath(); minimapCtx.moveTo(0, y); minimapCtx.lineTo(w, y); minimapCtx.stroke();
   }
-  for (let lon = -180; lon <= 180; lon += 60) {
+  for (let lon = -150; lon <= 180; lon += 60) {
     const x = (lon + 180) / 360 * w;
-    minimapCtx.beginPath();
-    minimapCtx.moveTo(x, 0);
-    minimapCtx.lineTo(x, h);
-    minimapCtx.stroke();
+    minimapCtx.beginPath(); minimapCtx.moveTo(x, 0); minimapCtx.lineTo(x, h); minimapCtx.stroke();
   }
 
-  // Draw simplified continent outlines (rough polygons)
-  minimapCtx.strokeStyle = 'rgba(0, 255, 136, 0.15)';
-  minimapCtx.lineWidth = 0.8;
-  const continents = [
-    // North America (simplified)
-    [[-130,50],[-125,60],[-100,65],[-80,60],[-60,50],[-65,45],[-80,25],[-100,20],[-120,30],[-130,50]],
-    // South America
-    [[-80,10],[-60,5],[-35,-5],[-40,-20],[-50,-30],[-70,-55],[-75,-45],[-75,-20],[-80,10]],
-    // Europe
-    [[-10,36],[0,43],[5,44],[15,45],[30,45],[40,42],[30,60],[25,70],[10,65],[5,60],[-10,50],[-10,36]],
-    // Africa
-    [[-15,35],[10,37],[35,30],[40,10],[50,12],[50,0],[35,-35],[20,-35],[15,-25],[10,-5],[-15,5],[-20,15],[-15,35]],
-    // Asia
-    [[40,42],[50,40],[60,40],[70,25],[80,10],[90,20],[100,15],[105,0],[110,20],[120,30],[130,35],[140,40],[145,50],[140,55],[130,50],[120,55],[100,55],[80,50],[70,55],[60,55],[50,55],[40,42]],
-    // Australia
-    [[115,-15],[130,-12],[150,-15],[155,-25],[150,-35],[135,-35],[115,-30],[115,-15]],
-  ];
-
-  continents.forEach(pts => {
-    minimapCtx.beginPath();
-    pts.forEach(([lon, lat], i) => {
-      const x = (lon + 180) / 360 * w;
-      const y = h / 2 - (lat / 90) * (h / 2);
-      if (i === 0) minimapCtx.moveTo(x, y);
-      else minimapCtx.lineTo(x, y);
+  // Draw accurate world coastlines
+  if (worldPolygons) {
+    minimapCtx.fillStyle = 'rgba(0, 255, 136, 0.04)';
+    minimapCtx.strokeStyle = 'rgba(0, 255, 136, 0.2)';
+    minimapCtx.lineWidth = 0.6;
+    worldPolygons.forEach(poly => {
+      minimapCtx.beginPath();
+      poly.forEach(([lon, lat], i) => {
+        const x = (lon + 180) / 360 * w;
+        const y = h / 2 - (lat / 90) * (h / 2);
+        if (i === 0) minimapCtx.moveTo(x, y);
+        else minimapCtx.lineTo(x, y);
+      });
+      minimapCtx.closePath();
+      minimapCtx.fill();
+      minimapCtx.stroke();
     });
-    minimapCtx.stroke();
-  });
+  }
 
-  // Draw aircraft positions
+  // Aircraft positions
   Object.values(aircraftData).forEach(ac => {
     if (!ac.lat || !ac.lon || !passesWatchlist(ac)) return;
     const x = (ac.lon + 180) / 360 * w;
     const y = h / 2 - (ac.lat / 90) * (h / 2);
 
-    // Aircraft dot
-    minimapCtx.fillStyle = selectedAc === ac.icao ? '#ffffff' : '#00ff88';
+    const isSelected = selectedAc === ac.icao;
+    minimapCtx.fillStyle = isSelected ? '#ffffff' : '#00ff88';
     minimapCtx.fillRect(x - 1.5, y - 1.5, 3, 3);
 
-    // Callsign label for selected
-    if (selectedAc === ac.icao) {
-      minimapCtx.fillStyle = '#00ff88';
-      minimapCtx.font = '9px JetBrains Mono';
-      minimapCtx.fillText(ac.callsign || ac.icao, x + 4, y + 3);
-    }
+    // Label
+    minimapCtx.fillStyle = '#00ff88';
+    minimapCtx.font = '8px monospace';
+    minimapCtx.fillText(ac.callsign || ac.icao, x + 4, y + 3);
   });
 
-  // Draw camera viewport indicator
+  // Camera viewport rect
   if (viewer) {
     try {
       const rect = viewer.camera.computeViewRectangle();
@@ -1183,11 +1179,11 @@ function renderMinimap() {
         const vy1 = h / 2 - (Cesium.Math.toDegrees(rect.north) / 90) * (h / 2);
         const vx2 = (Cesium.Math.toDegrees(rect.east) + 180) / 360 * w;
         const vy2 = h / 2 - (Cesium.Math.toDegrees(rect.south) / 90) * (h / 2);
-        minimapCtx.strokeStyle = 'rgba(0, 255, 136, 0.4)';
+        minimapCtx.strokeStyle = 'rgba(0, 255, 136, 0.5)';
         minimapCtx.lineWidth = 1;
         minimapCtx.strokeRect(vx1, vy1, vx2 - vx1, vy2 - vy1);
       }
-    } catch (e) { /* camera not ready */ }
+    } catch (e) {}
   }
 }
 

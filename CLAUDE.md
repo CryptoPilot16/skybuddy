@@ -18,10 +18,14 @@ Static site, no build step, no framework.
 - OpenSky auth optional (anonymous = ~100 req/day, auth = ~4000 req/day)
 - Auto-refreshes every 10s, scopes to camera viewport
 - Aircraft rendered as 3D GLB models matched to aircraft type (747, 777, wide/narrow body)
-- `assets/b747.glb` — Boeing 747-400F with Kalitta livery colors
-- `assets/b777.glb` — Boeing 777F
-- `assets/wide.glb` — Generic wide-body (A330/787/767)
-- `assets/narrow.glb` — Generic narrow-body (737/A320)
+- `assets/b744.glb` — Boeing 747-400 (FR24 model, 3.2MB)
+- `assets/b748.glb` — Boeing 747-8 (FR24 model, 1.7MB)
+- `assets/b772.glb` — Boeing 777-200 (FR24 model, 1.9MB)
+- `assets/b773.glb` — Boeing 777-300 (FR24 model, 1.3MB)
+- `assets/a333.glb` — Airbus A330-300 (FR24 model, 1.7MB) — used for generic wide-body
+- `assets/a320.glb` — Airbus A320 (FR24 model, 1.2MB) — used for generic narrow-body
+- `assets/b738.glb` — Boeing 737-800 (FR24 model, 2.9MB)
+- `assets/world.json` — Simplified world coastline polygons for minimap (Natural Earth 110m)
 
 ## Key APIs
 - OpenSky: `GET https://opensky-network.org/api/states/all?lamin=&lomin=&lamax=&lomax=`
