@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SKYBUDDY // 3D Flight Tracker</title>
   <meta name="description" content="Real-time 3D flight tracking on an interactive globe with terrain, powered by Cesium.js and OpenSky Network.">
   <meta name="theme-color" content="#0a0e14">
@@ -78,6 +78,7 @@
 
   <!-- Detail Panel: Selected Aircraft -->
   <div class="detail-panel" id="detailPanel">
+    <button class="detail-minimize" onclick="toggleDetailMinimize()">▾</button>
     <button class="detail-close" onclick="closeDetail()">✕</button>
     <div class="detail-callsign" id="detCallsign">---</div>
     <div class="detail-country" id="detCountry">---</div>
@@ -98,6 +99,7 @@
     <div class="detail-actions">
       <button class="btn-track" id="btnTrack" onclick="toggleTracking()">◎ TRACK</button>
       <button class="btn-track" id="btnOrbit" onclick="toggleOrbitMode()">⟳ ORBIT</button>
+      <button class="btn-track" id="btnGps" onclick="toggleGpsMode()">◎ GPS</button>
       <button class="btn-track" id="btnZoomIn" onclick="zoomToAircraft()">⊕ ZOOM</button>
     </div>
   </div>
@@ -128,6 +130,36 @@
     <button class="wl-toggle-btn" onclick="toggleWatchlistActive()" id="wlToggleBtn">Toggle Filter ON/OFF</button>
   </div>
 
+  <!-- Schedule Panel -->
+  <div class="schedule-panel" id="schedulePanel">
+    <div class="sched-header">
+      <span class="sched-title">MY SCHEDULE</span>
+      <button class="panel-close-btn" onclick="toggleSchedulePanel()">✕</button>
+    </div>
+    <div class="sched-add-row">
+      <input type="text" class="sched-input" id="schedFlight" placeholder="Callsign (CKS401)">
+      <input type="text" class="sched-input sched-input-sm" id="schedDep" placeholder="DEP">
+      <input type="text" class="sched-input sched-input-sm" id="schedArr" placeholder="ARR">
+    </div>
+    <div class="sched-add-row">
+      <input type="datetime-local" class="sched-input sched-input-dt" id="schedTime">
+      <label class="sched-onboard-label"><input type="checkbox" id="schedOnboard"> I'm onboard</label>
+      <button class="wl-add-btn" onclick="addScheduleEntry()">+</button>
+    </div>
+    <div class="sched-items" id="scheduleItems"></div>
+  </div>
+
+  <!-- Flight Banner (active onboard flight) -->
+  <div class="flight-banner" id="flightBanner">
+    <div class="fb-route" id="fbRoute">---</div>
+    <div class="fb-eta-label">ETA</div>
+    <div class="fb-eta" id="fbEta">--:--</div>
+    <div class="fb-progress"><div class="fb-progress-fill" id="fbProgress"></div></div>
+    <div class="fb-stats">
+      <span id="fbAlt">---</span> ft &middot; <span id="fbSpeed">---</span> kts &middot; <span id="fbDist">---</span> km remaining
+    </div>
+  </div>
+
   <!-- Altitude Filter -->
   <div class="alt-filter" id="altFilter">
     <div class="alt-filter-header">
@@ -151,6 +183,9 @@
     <div class="alt-row"><div class="alt-dot" style="background:rgba(255,159,28,0.6)"></div><span style="color:var(--text-dim)">60s heading vector</span></div>
   </div>
 
+  <!-- Webcam PiP -->
+  <div class="webcam-pip" id="webcamPip"></div>
+
   <!-- Minimap -->
   <div class="minimap-container" id="minimapContainer">
     <div class="minimap-header">GLOBAL VIEW <span class="minimap-count" id="minimapCount">0</span></div>
@@ -159,10 +194,12 @@
 
   <!-- Bottom Controls -->
   <div class="bottom-bar">
+    <button class="ctrl-btn" id="btnSchedule" onclick="toggleSchedulePanel()">Schedule</button>
     <button class="ctrl-btn" id="btnWatchlist" onclick="toggleWatchlistPanel()">Watchlist</button>
     <button class="ctrl-btn active" id="btnLabels" onclick="toggleLabels()">Labels</button>
     <button class="ctrl-btn" id="btnPaths" onclick="togglePaths()">Trails</button>
     <button class="ctrl-btn" id="btnPredict" onclick="togglePrediction()">Predict</button>
+    <button class="ctrl-btn" id="btnRoutes" onclick="cycleRouteMode()">Routes</button>
     <button class="ctrl-btn" id="btnAirports" onclick="toggleAirports()">Airports</button>
     <button class="ctrl-btn" id="btnAltFilter" onclick="toggleAltFilter()">Alt Filter</button>
     <button class="ctrl-btn" onclick="flyHome()">Home</button>

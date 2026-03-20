@@ -31,6 +31,7 @@ body {
   height: 100%;
   position: absolute;
   top: 0; left: 0;
+  touch-action: none; /* prevent browser gestures over 3D globe */
 }
 
 .cesium-viewer-toolbar,
@@ -314,6 +315,9 @@ body {
   font-family: var(--mono);
 }
 .detail-close:hover { color: var(--warn); }
+.detail-minimize {
+  display: none;
+}
 
 .detail-callsign {
   font-size: 18px;
@@ -576,6 +580,151 @@ body {
 }
 .wl-toggle-btn:hover { border-color: var(--accent); background: rgba(0, 255, 136, 0.05); }
 
+/* ─── Schedule Panel ─── */
+.schedule-panel {
+  position: absolute;
+  top: 46px;
+  right: 8px;
+  width: 320px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 0;
+  display: none;
+  z-index: 60;
+  overflow: hidden;
+}
+.schedule-panel.visible { display: block; }
+.sched-header {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(218, 165, 32, 0.04);
+}
+.sched-title {
+  font-size: 9px; text-transform: uppercase; letter-spacing: 2px;
+  color: var(--text-dim); flex: 1;
+}
+.sched-title::before { content: '// '; color: var(--gold); opacity: 0.6; }
+.sched-add-row {
+  display: flex; gap: 4px; padding: 6px 10px 0;
+  align-items: center;
+}
+.sched-input {
+  flex: 1; padding: 5px 6px;
+  background: rgba(218, 165, 32, 0.04);
+  border: 1px solid var(--border);
+  color: var(--gold); font-family: var(--mono); font-size: 10px; outline: none;
+}
+.sched-input:focus { border-color: var(--gold); }
+.sched-input::placeholder { color: var(--text-dim); }
+.sched-input-sm { max-width: 50px; text-transform: uppercase; }
+.sched-input-dt { font-size: 9px; color: var(--text); }
+.sched-onboard-label {
+  font-size: 8px; color: var(--text-dim); white-space: nowrap;
+  display: flex; align-items: center; gap: 3px;
+}
+.sched-onboard-label input[type="checkbox"] { accent-color: var(--gold); }
+.sched-items {
+  max-height: 260px; overflow-y: auto; padding: 4px;
+}
+.sched-item {
+  padding: 8px;
+  border-left: 3px solid var(--border);
+  margin-bottom: 4px;
+  background: rgba(255,255,255,0.01);
+  position: relative;
+}
+.sched-item.active {
+  border-left-color: var(--accent);
+  background: rgba(0, 255, 136, 0.04);
+}
+.sched-item.onboard {
+  border-left-color: var(--gold);
+  background: rgba(218, 165, 32, 0.06);
+}
+.sched-item.onboard.active {
+  border-left-color: var(--gold);
+  background: rgba(218, 165, 32, 0.08);
+  box-shadow: inset 0 0 12px rgba(218, 165, 32, 0.05);
+}
+.sched-flight {
+  font-size: 13px; font-weight: 700; color: var(--text); letter-spacing: 1px;
+}
+.sched-item.active .sched-flight { color: var(--accent); }
+.sched-item.onboard .sched-flight { color: var(--gold); }
+.sched-route {
+  font-size: 11px; color: var(--text-dim); margin-top: 2px; letter-spacing: 1px;
+}
+.sched-route .sched-arrow { color: var(--accent); margin: 0 4px; }
+.sched-time {
+  font-size: 9px; color: var(--text-dim); margin-top: 3px;
+}
+.sched-status {
+  position: absolute; top: 8px; right: 8px;
+  font-size: 8px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+}
+.sched-status.scheduled { color: var(--text-dim); }
+.sched-status.enroute { color: var(--accent); }
+.sched-status.onboard-live { color: var(--gold); }
+.sched-remove {
+  position: absolute; bottom: 6px; right: 8px;
+  background: none; border: none; color: var(--text-dim);
+  cursor: pointer; font-size: 10px; font-family: var(--mono);
+}
+.sched-remove:hover { color: var(--warn); }
+.sched-empty {
+  padding: 14px; font-size: 9px; color: var(--text-dim); text-align: center;
+}
+.sched-locate {
+  background: none; border: 1px solid var(--accent); color: var(--accent);
+  font-family: var(--mono); font-size: 8px; padding: 2px 6px;
+  cursor: pointer; margin-left: 6px; letter-spacing: 0.5px;
+}
+.sched-locate:hover { background: rgba(0,255,136,0.1); }
+
+/* ─── Flight Banner ─── */
+.flight-banner {
+  position: absolute;
+  top: 46px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--panel);
+  border: 1px solid rgba(218, 165, 32, 0.3);
+  border-left: 3px solid var(--gold);
+  padding: 10px 18px;
+  display: none;
+  z-index: 15;
+  min-width: 240px;
+  text-align: center;
+}
+.flight-banner.visible { display: block; }
+.fb-route {
+  font-size: 12px; font-weight: 700; color: var(--gold); letter-spacing: 2px;
+}
+.fb-eta-label {
+  font-size: 7px; text-transform: uppercase; letter-spacing: 2px;
+  color: var(--text-dim); margin-top: 6px;
+}
+.fb-eta {
+  font-size: 28px; font-weight: 700; color: var(--gold);
+  letter-spacing: 2px; line-height: 1.1;
+}
+.fb-progress {
+  width: 100%; height: 3px;
+  background: rgba(218, 165, 32, 0.15);
+  margin-top: 8px;
+}
+.fb-progress-fill {
+  height: 100%; width: 0%;
+  background: var(--gold);
+  transition: width 1s ease;
+}
+.fb-stats {
+  font-size: 9px; color: var(--text-dim); margin-top: 5px;
+  letter-spacing: 0.5px;
+}
+.fb-stats span { color: var(--text); font-weight: 600; }
+
 /* ─── Altitude Filter ─── */
 .alt-filter {
   position: absolute;
@@ -678,6 +827,69 @@ body {
   display: block;
 }
 
+/* ─── Webcam PiP ─── */
+.webcam-pip {
+  position: absolute;
+  bottom: 50px;
+  left: 320px;
+  width: 420px;
+  height: 280px;
+  background: var(--panel);
+  border: 1px solid var(--gold);
+  z-index: 90;
+  display: none;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+  resize: both;
+}
+.webcam-pip.visible { display: block; }
+.webcam-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: rgba(218, 165, 32, 0.08);
+  border-bottom: 1px solid var(--border);
+  cursor: move;
+  min-height: 26px;
+}
+.webcam-badge {
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 2px 6px;
+  background: var(--gold);
+  color: var(--bg);
+  text-transform: uppercase;
+}
+.webcam-title {
+  font-size: 9px;
+  color: var(--gold);
+  letter-spacing: 1px;
+  flex: 1;
+  text-transform: uppercase;
+}
+.webcam-controls {
+  display: flex;
+  gap: 4px;
+}
+.webcam-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+.webcam-btn:hover { border-color: var(--gold); color: var(--gold); }
+.webcam-iframe {
+  width: 100%;
+  height: calc(100% - 26px);
+  border: none;
+  display: block;
+}
+
 /* ─── Scanline overlay effect (subtle) ─── */
 #hud::before {
   content: '';
@@ -694,22 +906,265 @@ body {
   z-index: 999;
 }
 
-/* ─── Responsive ─── */
+/* ─── Responsive: Tablet ─── */
 @media (max-width: 768px) {
-  .top-bar { padding: 0 8px; }
-  .status-cluster { gap: 8px; }
+  .top-bar { padding: 0 8px; height: 32px; }
+  .status-cluster { gap: 6px; }
   .stat-label { display: none; }
-  .side-panel { width: 240px; }
+  .side-panel { width: 260px; top: 42px; bottom: 52px; }
   .setup-panel { width: calc(100% - 24px); padding: 20px; }
-  .detail-panel { width: 220px; }
+  .detail-panel { width: 240px; }
   .alt-legend { display: none; }
-  .minimap-container { display: none; }
+  .minimap-container {
+    width: 200px; height: 120px;
+    bottom: 52px;
+  }
+  .bottom-bar { gap: 2px; }
+  .ctrl-btn { padding: 6px 8px; font-size: 8px; }
+  .webcam-pip { width: 320px; height: 200px; left: 8px; }
 }
 
+/* ─── Responsive: Mobile ─── */
 @media (max-width: 480px) {
+  /* Top bar: ultra compact */
+  .top-bar { height: 36px; padding: 0 6px; }
+  .logo { font-size: 10px; letter-spacing: 1px; gap: 4px; }
   .logo .sub { display: none; }
-  .side-panel { width: 100%; left: 0; bottom: 0; top: 36px; }
-  .detail-panel { width: 100%; right: 0; top: auto; bottom: 0; }
-  .bottom-bar { bottom: auto; top: auto; }
-  .minimap-container { display: none; }
+  .logo .sep { display: none; }
+  .status-cluster { gap: 6px; font-size: 9px; }
+  .stat-label { display: none; }
+  .stat-value { font-size: 10px; }
+
+  /* Side panel: full-width slide-in drawer */
+  .side-panel {
+    width: 100%; left: 0; right: 0;
+    top: 36px;
+    bottom: 0;
+    z-index: 70;
+    border: none;
+    border-top: 1px solid var(--border);
+  }
+  .side-panel.hidden { transform: translateX(-100%); }
+  .search-box { font-size: 14px; padding: 10px; }
+  .ac-item {
+    padding: 10px 10px;
+    font-size: 12px;
+    min-height: 44px;
+    align-items: center;
+  }
+  .ac-callsign { font-size: 13px; }
+  .ac-alt { font-size: 12px; }
+  .ac-origin { font-size: 10px; }
+  .ac-speed { font-size: 10px; }
+
+  /* Detail panel: bottom sheet */
+  .detail-panel {
+    position: fixed;
+    top: auto;
+    right: 0; left: 0; bottom: 0;
+    width: 100%;
+    max-height: 40vh;
+    overflow-y: auto;
+    border: none;
+    border-top: 1px solid var(--border);
+    border-radius: 12px 12px 0 0;
+    z-index: 80;
+    padding: 12px 12px 16px;
+    transition: max-height 0.25s ease;
+  }
+  .detail-panel::before {
+    content: '';
+    display: block;
+    width: 36px; height: 4px;
+    background: var(--text-dim);
+    border-radius: 2px;
+    margin: 0 auto 8px;
+    cursor: pointer;
+  }
+  .detail-panel.minimized {
+    max-height: 56px;
+    overflow: hidden;
+    padding: 10px 12px;
+  }
+  .detail-panel.minimized::before { margin-bottom: 6px; }
+  .detail-panel.minimized .detail-country,
+  .detail-panel.minimized .detail-grid,
+  .detail-panel.minimized .detail-actions { display: none; }
+  .detail-panel.minimized .detail-callsign { font-size: 14px; margin-bottom: 0; }
+  .detail-panel.minimized .detail-minimize { transform: rotate(180deg); }
+  .detail-minimize {
+    display: block;
+    position: absolute;
+    top: 10px; right: 44px;
+    background: none; border: none;
+    color: var(--text-dim);
+    font-size: 18px;
+    cursor: pointer;
+    font-family: var(--mono);
+    padding: 4px 8px;
+    line-height: 1;
+  }
+  .detail-minimize:hover { color: var(--accent); }
+  .detail-callsign { font-size: 16px; }
+  .detail-grid { gap: 8px; }
+  .detail-field .val { font-size: 13px; }
+  .detail-field label { font-size: 7px; }
+  .detail-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .detail-actions .btn-track {
+    min-height: 40px;
+    font-size: 10px;
+    flex: 1 1 45%;
+  }
+  .detail-close {
+    top: 10px; right: 10px;
+    font-size: 16px;
+    padding: 4px 8px;
+  }
+
+  /* Bottom bar: horizontal scroll, larger touch targets */
+  .bottom-bar {
+    bottom: 0; left: 0; right: 0;
+    transform: none;
+    padding: 4px 4px;
+    gap: 3px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    z-index: 60;
+    justify-content: flex-start;
+  }
+  .bottom-bar::-webkit-scrollbar { display: none; }
+  .ctrl-btn {
+    padding: 10px 12px;
+    font-size: 10px;
+    min-height: 40px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Toggle button: larger for mobile */
+  .toggle-panel-btn {
+    top: 40px;
+    min-width: 40px; min-height: 40px;
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Minimap: compact corner widget */
+  .minimap-container {
+    display: block;
+    width: 140px; height: 85px;
+    bottom: 48px; left: 4px;
+    z-index: 50;
+    opacity: 0.85;
+  }
+  .minimap-header { font-size: 6px; padding: 1px 4px; }
+  .minimap-canvas { image-rendering: auto; }
+
+  /* Watchlist panel: full width */
+  .watchlist-panel {
+    width: 100%; right: 0; left: 0;
+    top: 36px;
+    max-height: 60vh;
+    overflow-y: auto;
+    border: none;
+    border-top: 1px solid var(--border);
+    z-index: 75;
+  }
+  .wl-input { font-size: 14px; padding: 10px 8px; }
+  .wl-add-btn { min-width: 44px; min-height: 44px; font-size: 18px; }
+  .wl-item { min-height: 40px; font-size: 13px; }
+
+  /* Alt filter: full width */
+  .alt-filter {
+    width: calc(100% - 8px);
+    left: 4px;
+    transform: none;
+    bottom: 48px;
+  }
+  .alt-filter-row input[type="range"]::-webkit-slider-thumb {
+    width: 20px; height: 20px;
+  }
+
+  /* Notifications: wider on mobile */
+  .notification {
+    width: calc(100% - 16px);
+    max-width: none;
+    top: 40px;
+    font-size: 11px;
+    padding: 10px 14px;
+  }
+
+  /* Setup panel: full-screen mobile */
+  .setup-panel {
+    width: 100%; height: 100%;
+    top: 0; left: 0;
+    transform: none;
+    padding: 24px 16px;
+    overflow-y: auto;
+    border: none;
+  }
+  .setup-panel h2 { font-size: 16px; }
+  .setup-panel p { font-size: 11px; }
+  .input-group input { font-size: 16px; padding: 12px; }
+  .btn-launch { font-size: 13px; padding: 14px; min-height: 48px; }
+  .setup-note { display: none; }
+
+  /* Webcam PiP: full-width bottom on mobile */
+  .webcam-pip {
+    top: auto;
+    bottom: 48px;
+    right: 0; left: 0;
+    width: 100%;
+    height: 200px;
+    resize: none;
+    border-left: none; border-right: none;
+  }
+  .webcam-header { min-height: 32px; }
+  .webcam-badge { font-size: 8px; padding: 3px 8px; }
+  .webcam-title { font-size: 10px; }
+  .webcam-btn { min-height: 28px; min-width: 28px; font-size: 11px; padding: 4px 8px; }
+
+  /* Schedule panel: full-width on mobile */
+  .schedule-panel {
+    width: 100%; right: 0; left: 0;
+    top: 36px; bottom: 0;
+    border: none; border-top: 1px solid var(--border);
+    z-index: 70;
+  }
+  .sched-items { max-height: none; flex: 1; }
+  .sched-input { font-size: 14px; padding: 10px 8px; }
+  .sched-input-dt { font-size: 12px; }
+
+  /* Flight banner: compact top strip on mobile */
+  .flight-banner {
+    top: 36px; left: 0; right: 0;
+    transform: none;
+    min-width: auto;
+    padding: 8px 12px;
+    border-left: none;
+    border-bottom: 2px solid var(--gold);
+  }
+  .fb-eta { font-size: 22px; }
+  .fb-route { font-size: 10px; }
+
+  /* Prediction legend: hide on mobile */
+  .prediction-legend { display: none !important; }
+
+  /* Scanline: disable on mobile for performance */
+  #hud::before { display: none; }
+}
+
+/* ─── Touch-friendly global overrides ─── */
+@media (pointer: coarse) {
+  .ctrl-btn { min-height: 40px; padding: 8px 12px; }
+  .panel-close-btn { font-size: 16px; padding: 4px 8px; min-width: 32px; min-height: 32px; }
+  .detail-close { font-size: 18px; padding: 6px 10px; }
+  .ac-item { min-height: 44px; padding: 8px 10px; }
+  .wl-remove { font-size: 14px; min-width: 32px; min-height: 32px; }
 }

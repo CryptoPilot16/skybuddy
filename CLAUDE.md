@@ -18,7 +18,7 @@ Static site, no build step, no framework.
 - OpenSky auth optional (anonymous = ~100 req/day, auth = ~4000 req/day)
 - Auto-refreshes every 10s, scopes to camera viewport
 - Aircraft rendered as 3D GLB models matched to aircraft type (747, 777, wide/narrow body)
-- `assets/b744.glb` — Boeing 747-400 (FR24 model, 3.2MB)
+- `assets/b744.glb` — Boeing 747-400 with Kalitta Air livery (red/gold stripes, white fuselage)
 - `assets/b748.glb` — Boeing 747-8 (FR24 model, 1.7MB)
 - `assets/b772.glb` — Boeing 777-200 (FR24 model, 1.9MB)
 - `assets/b773.glb` — Boeing 777-300 (FR24 model, 1.3MB)
@@ -30,6 +30,9 @@ Static site, no build step, no framework.
 ## Key APIs
 - OpenSky: `GET https://opensky-network.org/api/states/all?lamin=&lomin=&lamax=&lomax=`
 - Returns: [icao24, callsign, origin_country, time_position, last_contact, lon, lat, baro_altitude, on_ground, velocity, true_track, vertical_rate, sensors, geo_altitude, squawk, spi, position_source]
+- VRS Standing Data (flight routes): `GET https://vrs-standing-data.adsb.lol/routes/{PREFIX}/{CALLSIGN}.json`
+- Returns: `{ callsign, airline_code, airport_codes, _airports: [{ name, icao, iata, lat, lon }] }`
+- Free, no auth, hosted on GitHub Pages CDN
 
 ## Deployment
 - Static files served via Caddy on VPS
@@ -50,7 +53,7 @@ Static site, no build step, no framework.
 - Searchable aircraft list (callsign, ICAO, country)
 - Viewport-scoped API calls
 - Credential persistence in localStorage
-- Keyboard shortcuts (L/T/P/A/F/H/R/Esc)
+- Keyboard shortcuts (L/T/P/A/F/H/R/Shift+R/G/W/Esc)
 - Responsive design (desktop + mobile)
 - Notification toasts
 - PWA manifest with 180px icon
@@ -63,6 +66,12 @@ Static site, no build step, no framework.
 - [x] GLTF 3D aircraft models matched to aircraft type (B747, B777, wide-body, narrow-body)
 - [x] Airline watchlist with callsign prefix filter (default: CKS/Kalitta Air)
 - [x] Aircraft type detection from ADSB.lol `t` field
+- [x] Kalitta Air livery on B744 model (red/gold fuselage stripes, diagonal tail stripes)
+- [x] 3D flight route projection with real flight plan data from VRS API
+- [x] Route toggle (selected/all/off) with origin/destination airport markers
+- [x] Enhanced labels: callsign, type, FL, origin→destination above aircraft
+- [x] Side-view zoom camera (profile view of aircraft)
+- [x] Airport webcam PiP on approach/departure (worldcams.tv integration)
 - [ ] Backend proxy (Node.js) to hide OpenSky credentials
 - [ ] WebSocket or SSE push instead of polling
 - [ ] Heatmap mode (traffic density)
