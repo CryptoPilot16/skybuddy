@@ -23,6 +23,8 @@ let altFilterMax = 50000;
 let dataSourceMode = 'opensky'; // 'opensky' | 'adsbx'
 let failedSources = new Set();
 let globeFilter = ''; // search filter applied to globe entities too
+let watchlist = []; // persistent airline/callsign filter
+let watchlistActive = false;
 
 // ─── Config ───
 const CONFIG = {
@@ -122,6 +124,76 @@ function clearCredentials() {
   } catch (e) { /* noop */ }
 }
 
+// ─── Watchlist Persistence ───
+function saveWatchlist() {
+  try { localStorage.setItem('skybuddy_watchlist', JSON.stringify(watchlist)); } catch (e) {}
+}
+function loadWatchlist() {
+  try {
+    const saved = localStorage.getItem('skybuddy_watchlist');
+    if (saved) watchlist = JSON.parse(saved);
+    const active = localStorage.getItem('skybuddy_watchlist_active');
+    if (active !== null) watchlistActive = active === 'true';
+  } catch (e) {}
+}
+function saveWatchlistActive() {
+  try { localStorage.setItem('skybuddy_watchlist_active', watchlistActive); } catch (e) {}
+}
+
+function addToWatchlist(entry) {
+  const val = entry.toUpperCase().trim();
+  if (!val || watchlist.includes(val)) return;
+  watchlist.push(val);
+  saveWatchlist();
+  renderWatchlistPanel();
+  if (watchlistActive) { updateGlobe(); renderAircraftList(); }
+  notify('Added "' + val + '" to watchlist');
+}
+
+function removeFromWatchlist(entry) {
+  watchlist = watchlist.filter(w => w !== entry);
+  saveWatchlist();
+  renderWatchlistPanel();
+  if (watchlistActive) { updateGlobe(); renderAircraftList(); }
+}
+
+function toggleWatchlistActive() {
+  watchlistActive = !watchlistActive;
+  saveWatchlistActive();
+  document.getElementById('btnWatchlist').classList.toggle('active', watchlistActive);
+  document.getElementById('watchlistStatus').textContent = watchlistActive ? 'ACTIVE' : 'OFF';
+  document.getElementById('watchlistStatus').style.color = watchlistActive ? 'var(--accent)' : 'var(--text-dim)';
+  // Clear globe and rebuild
+  Object.keys(aircraftEntities).forEach(icao => {
+    viewer.entities.remove(aircraftEntities[icao]);
+    delete aircraftEntities[icao];
+  });
+  updateGlobe();
+  renderAircraftList();
+  notify('Watchlist ' + (watchlistActive ? 'ON — showing only watched aircraft' : 'OFF — showing all'));
+}
+
+function passesWatchlist(ac) {
+  if (!watchlistActive || watchlist.length === 0) return true;
+  const cs = (ac.callsign || '').toUpperCase();
+  const icao = ac.icao.toUpperCase();
+  const country = (ac.country || '').toUpperCase();
+  return watchlist.some(w => cs.startsWith(w) || cs.includes(w) || icao.includes(w) || country === w);
+}
+
+function toggleWatchlistPanel() {
+  const panel = document.getElementById('watchlistPanel');
+  panel.classList.toggle('visible');
+}
+
+function renderWatchlistPanel() {
+  const list = document.getElementById('watchlistItems');
+  if (!list) return;
+  list.innerHTML = watchlist.map(w =>
+    `<div class="wl-item"><span class="wl-name">${w}</span><button class="wl-remove" onclick="removeFromWatchlist('${w}')">✕</button></div>`
+  ).join('') || '<div class="wl-empty">No entries — add callsign prefixes above</div>';
+}
+
 // ─── Initialization ───
 function initApp() {
   const token = document.getElementById('cesiumToken').value.trim();
@@ -211,11 +283,15 @@ function initApp() {
 // ─── Auto-login ───
 function tryAutoLogin() {
   const creds = loadCredentials();
-  // Priority: localStorage > env.js
   const token = creds.token || (window.ENV && window.ENV.CESIUM_ION_TOKEN) || '';
   if (token) document.getElementById('cesiumToken').value = token;
   if (creds.user) document.getElementById('osUser').value = creds.user;
   if (creds.pass) document.getElementById('osPass').value = creds.pass;
+  loadWatchlist();
+  renderWatchlistPanel();
+  document.getElementById('btnWatchlist').classList.toggle('active', watchlistActive);
+  document.getElementById('watchlistStatus').textContent = watchlistActive ? 'ACTIVE' : 'OFF';
+  document.getElementById('watchlistStatus').style.color = watchlistActive ? 'var(--accent)' : 'var(--text-dim)';
 }
 
 // ─── Keyboard Shortcuts ───
@@ -229,6 +305,7 @@ function handleKeyboard(e) {
     case 'p': togglePrediction(); break;
     case 'a': toggleAirports(); break;
     case 'f': toggleAltFilter(); break;
+    case 'w': toggleWatchlistPanel(); break;
     case 'escape':
       if (selectedAc) closeDetail();
       break;
@@ -400,8 +477,8 @@ function updateGlobe() {
   Object.values(aircraftData).forEach(ac => {
     if (ac.lat == null || ac.lon == null) return;
 
-    // Filter: hide entities that don't pass altitude or search filter
-    if (!passesAltFilter(ac) || !passesGlobeFilter(ac)) {
+    // Filter: hide entities that don't pass watchlist, altitude, or search filter
+    if (!passesWatchlist(ac) || !passesAltFilter(ac) || !passesGlobeFilter(ac)) {
       if (aircraftEntities[ac.icao]) {
         viewer.entities.remove(aircraftEntities[ac.icao]);
         delete aircraftEntities[ac.icao];
@@ -524,7 +601,7 @@ function renderAircraftList() {
   const filter = (document.getElementById('searchBox').value || '').toUpperCase();
 
   const sorted = Object.values(aircraftData)
-    .filter(ac => ac.lat && ac.lon && !ac.onGround && passesAltFilter(ac))
+    .filter(ac => ac.lat && ac.lon && !ac.onGround && passesWatchlist(ac) && passesAltFilter(ac))
     .filter(ac =>
       !filter ||
       (ac.callsign && ac.callsign.toUpperCase().includes(filter)) ||

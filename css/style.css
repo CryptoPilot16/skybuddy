@@ -479,6 +479,82 @@ body {
 }
 .notification.error { border-color: var(--warn); color: var(--warn); }
 
+/* ─── Watchlist Panel ─── */
+.watchlist-panel {
+  position: absolute;
+  top: 58px;
+  right: 10px;
+  width: 300px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  backdrop-filter: blur(20px);
+  padding: 0;
+  display: none;
+  z-index: 60;
+  overflow: hidden;
+}
+.watchlist-panel.visible { display: block; }
+.wl-header {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.wl-title {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 2px;
+  color: var(--text-dim); flex: 1;
+}
+.wl-status {
+  font-size: 11px; font-weight: 700; letter-spacing: 1px;
+}
+.wl-add-row {
+  display: flex; gap: 6px; padding: 10px 14px 0;
+}
+.wl-input {
+  flex: 1; padding: 8px 10px;
+  background: rgba(0, 255, 136, 0.05);
+  border: 1px solid var(--border); border-radius: 4px;
+  color: var(--accent); font-family: var(--mono); font-size: 12px; outline: none;
+}
+.wl-input:focus { border-color: var(--accent); }
+.wl-input::placeholder { color: var(--text-dim); }
+.wl-add-btn {
+  padding: 8px 14px; background: var(--accent); color: var(--bg);
+  border: none; border-radius: 4px; font-family: var(--mono);
+  font-weight: 700; font-size: 16px; cursor: pointer;
+}
+.wl-add-btn:hover { background: #00cc6e; }
+.wl-hint {
+  padding: 4px 14px 8px; font-size: 9px; color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+}
+.wl-items {
+  max-height: 200px; overflow-y: auto; padding: 6px;
+}
+.wl-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 10px; border-radius: 4px;
+  font-size: 13px; font-weight: 600; color: var(--accent);
+  letter-spacing: 1px;
+}
+.wl-item:hover { background: rgba(0, 255, 136, 0.06); }
+.wl-remove {
+  background: none; border: none; color: var(--text-dim);
+  cursor: pointer; font-size: 12px; font-family: var(--mono);
+}
+.wl-remove:hover { color: var(--warn); }
+.wl-empty {
+  padding: 12px 14px; font-size: 10px; color: var(--text-dim); text-align: center;
+}
+.wl-toggle-btn {
+  width: calc(100% - 12px); margin: 6px; padding: 10px;
+  background: rgba(0, 255, 136, 0.08); border: 1px solid var(--border);
+  border-radius: 4px; color: var(--accent); font-family: var(--mono);
+  font-weight: 600; font-size: 10px; letter-spacing: 1px; cursor: pointer;
+  text-transform: uppercase;
+}
+.wl-toggle-btn:hover { border-color: var(--accent); background: rgba(0, 255, 136, 0.15); }
+
 /* ─── Altitude Filter ─── */
 .alt-filter {
   position: absolute;

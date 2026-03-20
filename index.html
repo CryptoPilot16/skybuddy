@@ -104,6 +104,22 @@
     <div class="alt-row"><div class="alt-dot" style="background:#5a6a7a"></div><span style="color:var(--text-dim)">On ground</span></div>
   </div>
 
+  <!-- Watchlist Panel -->
+  <div class="watchlist-panel" id="watchlistPanel">
+    <div class="wl-header">
+      <span class="wl-title">MY WATCHLIST</span>
+      <span class="wl-status" id="watchlistStatus">OFF</span>
+      <button class="panel-close-btn" onclick="toggleWatchlistPanel()">✕</button>
+    </div>
+    <div class="wl-add-row">
+      <input type="text" class="wl-input" id="wlInput" placeholder="e.g. CKS, GTI, FDX, N742CK..." onkeydown="if(event.key==='Enter'){addToWatchlist(this.value);this.value='';}">
+      <button class="wl-add-btn" onclick="addToWatchlist(document.getElementById('wlInput').value);document.getElementById('wlInput').value='';">+</button>
+    </div>
+    <div class="wl-hint">Callsign prefix, ICAO hex, or country. Press Enter to add.</div>
+    <div class="wl-items" id="watchlistItems"></div>
+    <button class="wl-toggle-btn" onclick="toggleWatchlistActive()" id="wlToggleBtn">Toggle Filter ON/OFF</button>
+  </div>
+
   <!-- Altitude Filter -->
   <div class="alt-filter" id="altFilter">
     <div class="alt-filter-header">
@@ -129,6 +145,7 @@
 
   <!-- Bottom Controls -->
   <div class="bottom-bar">
+    <button class="ctrl-btn" id="btnWatchlist" onclick="toggleWatchlistPanel()">Watchlist</button>
     <button class="ctrl-btn active" id="btnLabels" onclick="toggleLabels()">Labels</button>
     <button class="ctrl-btn" id="btnPaths" onclick="togglePaths()">Trails</button>
     <button class="ctrl-btn" id="btnPredict" onclick="togglePrediction()">Predict</button>
