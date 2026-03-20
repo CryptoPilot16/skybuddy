@@ -21,9 +21,6 @@ let airportEntities = [];
 let altFilterMin = 0;
 let altFilterMax = 50000;
 let orbitMode = false;
-let orbitDistance = 500; // meters from aircraft
-let orbitAngle = 0;     // current orbit angle (radians)
-let orbitPitch = -15;   // degrees
 let dataSourceMode = 'adsbx'; // 'opensky' | 'adsbx' — default to ADSB.lol for aircraft type data
 let failedSources = new Set();
 let globeFilter = ''; // search filter applied to globe entities too
@@ -321,35 +318,6 @@ function initApp() {
         selectAircraft(picked.id._acIcao);
       }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
-
-    // Orbit mode: mouse drag rotates, wheel zooms distance
-    let orbitDragging = false;
-    let orbitLastX = 0;
-    handler.setInputAction(function (movement) {
-      if (orbitMode && trackingAc) {
-        orbitDragging = true;
-        orbitLastX = movement.position.x;
-      }
-    }, Cesium.ScreenSpaceEventType.RIGHT_DOWN);
-
-    handler.setInputAction(function () {
-      orbitDragging = false;
-    }, Cesium.ScreenSpaceEventType.RIGHT_UP);
-
-    handler.setInputAction(function (movement) {
-      if (orbitMode && orbitDragging && trackingAc) {
-        const dx = movement.endPosition.x - movement.startPosition.x;
-        const dy = movement.endPosition.y - movement.startPosition.y;
-        orbitAngle += dx * 0.005;
-        orbitPitch = Math.max(-80, Math.min(-2, orbitPitch - dy * 0.3));
-      }
-    }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
-
-    handler.setInputAction(function (delta) {
-      if (orbitMode && trackingAc) {
-        orbitDistance = Math.max(50, Math.min(5000, orbitDistance * (1 - delta * 0.001)));
-      }
-    }, Cesium.ScreenSpaceEventType.WHEEL);
 
     // Start centered on default location
     viewer.camera.flyTo({
@@ -718,50 +686,30 @@ function updateGlobe() {
   // Redraw predictions if active
   if (showPrediction) drawPredictions();
 
-  // Camera tracking — orbit or chase
-  if (trackingAc && aircraftData[trackingAc]) {
+  // Camera tracking — chase cam (orbit is handled by Cesium's trackedEntity)
+  if (trackingAc && !orbitMode && aircraftData[trackingAc]) {
     const ac = aircraftData[trackingAc];
     const alt = ac.alt || ac.geoAlt || 5000;
-    const pos = Cesium.Cartesian3.fromDegrees(ac.lon, ac.lat, alt);
+    const hdg = ac.heading || 0;
+    const hdgRad = Cesium.Math.toRadians(hdg);
+    const offsetDist = 0.003;
+    const camLat = ac.lat - Math.cos(hdgRad) * offsetDist;
+    const camLon = ac.lon - Math.sin(hdgRad) * offsetDist;
 
-    if (orbitMode) {
-      // Free orbit — camera circles around the aircraft at orbitDistance
-      // User controls orbitAngle via mouse, we just keep the center on the aircraft
-      const transform = Cesium.Transforms.eastNorthUpToFixedFrame(pos);
-      const offsetX = orbitDistance * Math.cos(orbitAngle);
-      const offsetY = orbitDistance * Math.sin(orbitAngle);
-      const offsetZ = orbitDistance * 0.3;
-      const camOffset = new Cesium.Cartesian3(offsetX, offsetY, offsetZ);
-      const camPos = Cesium.Matrix4.multiplyByPoint(transform, camOffset, new Cesium.Cartesian3());
+    viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(camLon, camLat, alt + 150),
+      orientation: {
+        heading: Cesium.Math.toRadians(hdg),
+        pitch: Cesium.Math.toRadians(-10),
+        roll: 0,
+      },
+      duration: CONFIG.TRACK_FLY_DURATION,
+    });
+  }
 
-      viewer.camera.setView({
-        destination: camPos,
-        orientation: {
-          direction: Cesium.Cartesian3.normalize(
-            Cesium.Cartesian3.subtract(pos, camPos, new Cesium.Cartesian3()),
-            new Cesium.Cartesian3()
-          ),
-          up: Cesium.Cartesian3.normalize(camPos, new Cesium.Cartesian3()),
-        },
-      });
-    } else {
-      // Chase cam — behind aircraft
-      const hdg = ac.heading || 0;
-      const hdgRad = Cesium.Math.toRadians(hdg);
-      const offsetDist = 0.003;
-      const camLat = ac.lat - Math.cos(hdgRad) * offsetDist;
-      const camLon = ac.lon - Math.sin(hdgRad) * offsetDist;
-
-      viewer.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(camLon, camLat, alt + 150),
-        orientation: {
-          heading: Cesium.Math.toRadians(hdg),
-          pitch: Cesium.Math.toRadians(-10),
-          roll: 0,
-        },
-        duration: CONFIG.TRACK_FLY_DURATION,
-      });
-    }
+  // Keep orbit entity synced
+  if (orbitMode && trackingAc && aircraftEntities[trackingAc]) {
+    viewer.trackedEntity = aircraftEntities[trackingAc];
   }
 }
 
@@ -966,9 +914,11 @@ function toggleTracking() {
   if (trackingAc === selectedAc) {
     trackingAc = null;
     orbitMode = false;
+    viewer.trackedEntity = undefined;
   } else {
     trackingAc = selectedAc;
     orbitMode = false;
+    viewer.trackedEntity = undefined;
   }
   updateTrackingUI();
   if (trackingAc) notify('Tracking ' + (aircraftData[trackingAc]?.callsign || trackingAc));
@@ -976,28 +926,33 @@ function toggleTracking() {
 
 function toggleOrbitMode() {
   if (!selectedAc) return;
-  trackingAc = selectedAc;
-  orbitMode = !orbitMode;
-  orbitDistance = 500;
-  orbitAngle = 0;
-  orbitPitch = -15;
-  updateTrackingUI();
+
   if (orbitMode) {
-    // Disable default camera controls in orbit mode
-    viewer.scene.screenSpaceCameraController.enableRotate = false;
-    viewer.scene.screenSpaceCameraController.enableZoom = false;
-    notify('ORBIT MODE — right-drag to rotate, scroll to zoom');
+    // Exit orbit
+    orbitMode = false;
+    trackingAc = null;
+    viewer.trackedEntity = undefined;
+    notify('Orbit off');
   } else {
-    viewer.scene.screenSpaceCameraController.enableRotate = true;
-    viewer.scene.screenSpaceCameraController.enableZoom = true;
-    notify('Orbit mode off');
+    // Enter orbit — use Cesium's built-in entity tracking
+    // This gives full free mouse rotation around the moving entity
+    orbitMode = true;
+    trackingAc = selectedAc;
+    const entity = aircraftEntities[selectedAc];
+    if (entity) {
+      viewer.trackedEntity = entity;
+      // Zoom in close to start
+      viewer.camera.zoomIn(viewer.camera.positionCartographic.height * 0.8);
+      notify('ORBIT — drag to rotate freely, scroll to zoom');
+    }
   }
+  updateTrackingUI();
 }
 
 function updateTrackingUI() {
   const btn = document.getElementById('btnTrack');
-  btn.textContent = trackingAc ? '■ STOP' : '◎ TRACK';
-  btn.classList.toggle('tracking', !!trackingAc);
+  btn.textContent = trackingAc && !orbitMode ? '■ STOP' : '◎ CHASE';
+  btn.classList.toggle('tracking', !!trackingAc && !orbitMode);
   const orbitBtn = document.getElementById('btnOrbit');
   if (orbitBtn) {
     orbitBtn.classList.toggle('tracking', orbitMode);

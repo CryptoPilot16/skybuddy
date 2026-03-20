@@ -651,8 +651,8 @@ body {
   position: absolute;
   bottom: 44px;
   left: 8px;
-  width: 320px;
-  height: 180px;
+  width: 480px;
+  height: 280px;
   background: var(--panel);
   border: 1px solid var(--border);
   overflow: hidden;
