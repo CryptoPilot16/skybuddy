@@ -7,7 +7,7 @@ let aircraftEntities = {};
 let aircraftData = {};
 let selectedAc = null;
 let trackingAc = null;
-let showLabels = false;
+let showLabels = true;
 let showPaths = false;
 let osUser = '';
 let osPass = '';
@@ -32,11 +32,11 @@ let routeCache = {}; // callsign → route data from VRS API
 let schedule = []; // user's flight schedule
 let scheduleMatches = new Map(); // scheduleId → icao24
 let scheduleRouteEntities = []; // Cesium entities for schedule route lines
-let showConflicts = false; // conflict zone overlay toggle
+let showConflicts = true; // conflict zone overlay toggle
 let conflictDataSource = null; // Cesium GeoJsonDataSource for conflict zones
 let conflictFilterActive = false; // filter aircraft from conflict countries
 let hexdbCache = {}; // icao24 → hexdb.io aircraft info (registration, owner, etc.)
-let showOtherPlanes = false; // show non-scheduled aircraft
+let showOtherPlanes = true; // show non-scheduled aircraft
 
 // ─── Config ───
 const CONFIG = {
@@ -945,15 +945,23 @@ function initApp() {
     document.getElementById('loadingText').textContent = 'Fetching aircraft...';
     stats.sessionStart = new Date();
 
-    // Start with side panel (aircraft list) hidden — schedule + minimap are the defaults
-    document.getElementById('sidePanel').classList.add('hidden');
-    document.getElementById('toggleBtn').style.display = 'block';
+    // All panels visible by default
+    document.getElementById('sidePanel').classList.remove('hidden');
+    document.getElementById('toggleBtn').style.display = 'none';
+
+    // Set default button states
+    document.getElementById('btnOthers').classList.add('active');
+    document.getElementById('btnLabels').classList.add('active');
+    document.getElementById('btnConflicts').classList.add('active');
+    document.getElementById('conflictLegend').style.display = 'block';
 
     fetchAircraft().then(() => {
       const overlay = document.getElementById('loadingOverlay');
       overlay.classList.add('fade-out');
       setTimeout(() => overlay.style.display = 'none', 600);
       notify('SKYBUDDY online — tracking live aircraft');
+      // Draw conflicts on load
+      drawConflicts();
       // Start demo flight if schedule has an onboard flight with no live match
       if (schedule.find(s => s.onboard) && scheduleMatches.size === 0) {
         startDemoFlight();
