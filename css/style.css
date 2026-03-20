@@ -1,0 +1,498 @@
+/* SKYBUDDY // 3D Flight Tracker — Core Styles */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0a0e14;
+  --panel: rgba(10, 14, 20, 0.92);
+  --border: rgba(0, 255, 136, 0.15);
+  --accent: #00ff88;
+  --accent-dim: rgba(0, 255, 136, 0.4);
+  --warn: #ff6b35;
+  --info: #00b4d8;
+  --text: #c8d6e5;
+  --text-dim: #5a6a7a;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Space Grotesk', sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* ─── Cesium Container ─── */
+#cesiumContainer {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0; left: 0;
+}
+
+.cesium-viewer-toolbar,
+.cesium-viewer-animationContainer,
+.cesium-viewer-timelineContainer,
+.cesium-viewer-bottom,
+.cesium-viewer-fullscreenContainer,
+.cesium-viewer-geocoderContainer,
+.cesium-viewer-infoBoxContainer,
+.cesium-credit-logoContainer,
+.cesium-credit-expand-link,
+.cesium-widget-credits { display: none !important; }
+.cesium-viewer .cesium-widget-credits { display: none !important; }
+
+/* ─── HUD Overlay ─── */
+#hud {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  z-index: 100;
+}
+#hud > * { pointer-events: auto; }
+
+/* ─── Top Bar ─── */
+.top-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 48px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  backdrop-filter: blur(20px);
+  z-index: 10;
+}
+
+.logo {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 3px;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.logo .sep { color: var(--text-dim); font-weight: 300; }
+.logo .sub { color: var(--text-dim); font-weight: 400; font-size: 11px; letter-spacing: 1px; }
+
+.status-cluster {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-size: 11px;
+}
+
+.stat { display: flex; align-items: center; gap: 6px; }
+.stat-label { color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; font-size: 9px; }
+.stat-value { color: var(--accent); font-weight: 600; font-size: 13px; }
+
+.pulse-dot {
+  width: 6px; height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 4px var(--accent); }
+  50% { opacity: 0.3; box-shadow: 0 0 12px var(--accent); }
+}
+
+/* ─── Setup Panel ─── */
+.setup-panel {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 40px;
+  width: 480px;
+  backdrop-filter: blur(30px);
+  z-index: 200;
+}
+.setup-panel h2 {
+  font-family: var(--sans);
+  color: var(--accent);
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  letter-spacing: 2px;
+}
+.setup-panel p {
+  color: var(--text-dim);
+  font-size: 11px;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+.setup-panel p a { color: var(--accent); text-decoration: none; }
+.setup-panel p a:hover { text-decoration: underline; }
+
+.input-group { margin-bottom: 16px; }
+.input-group label {
+  display: block;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+.input-group input {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(0, 255, 136, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.input-group input:focus { border-color: var(--accent); }
+.input-group input::placeholder { color: var(--text-dim); }
+
+.btn-launch {
+  width: 100%;
+  padding: 12px;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: all 0.2s;
+}
+.btn-launch:hover {
+  background: #00cc6e;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
+}
+
+.setup-note {
+  margin-top: 16px;
+  padding: 10px 14px;
+  background: rgba(0, 180, 216, 0.08);
+  border: 1px solid rgba(0, 180, 216, 0.2);
+  border-radius: 4px;
+  font-size: 10px;
+  color: var(--info);
+  line-height: 1.5;
+}
+
+.setup-footer {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
+/* ─── Side Panel (Aircraft List) ─── */
+.side-panel {
+  position: absolute;
+  top: 58px;
+  left: 10px;
+  bottom: 10px;
+  width: 320px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+}
+.side-panel.hidden { transform: translateX(-340px); }
+
+.panel-header {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.panel-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+}
+
+.panel-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--mono);
+}
+.panel-close-btn:hover { color: var(--accent); }
+
+.search-box {
+  padding: 8px 12px;
+  margin: 8px 14px;
+  width: calc(100% - 28px);
+  background: rgba(0, 255, 136, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  outline: none;
+}
+.search-box:focus { border-color: var(--accent-dim); }
+
+.aircraft-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px;
+}
+.aircraft-list::-webkit-scrollbar { width: 4px; }
+.aircraft-list::-webkit-scrollbar-track { background: transparent; }
+.aircraft-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.ac-item {
+  padding: 8px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+.ac-item:hover { background: rgba(0, 255, 136, 0.06); }
+.ac-item.selected { background: rgba(0, 255, 136, 0.1); border-left: 2px solid var(--accent); }
+
+.ac-callsign { font-weight: 600; font-size: 12px; color: var(--accent); }
+.ac-alt { font-size: 10px; color: var(--info); text-align: right; }
+.ac-origin { font-size: 9px; color: var(--text-dim); }
+.ac-speed { font-size: 9px; color: var(--text-dim); text-align: right; }
+
+/* ─── Detail Panel ─── */
+.detail-panel {
+  position: absolute;
+  top: 58px;
+  right: 10px;
+  width: 280px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  backdrop-filter: blur(20px);
+  padding: 16px;
+  display: none;
+}
+.detail-panel.visible { display: block; }
+
+.detail-close {
+  position: absolute;
+  top: 8px; right: 12px;
+  background: none; border: none;
+  color: var(--text-dim);
+  font-size: 16px;
+  cursor: pointer;
+  font-family: var(--mono);
+}
+.detail-close:hover { color: var(--accent); }
+
+.detail-callsign {
+  font-family: var(--sans);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.detail-country {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.detail-field label {
+  display: block;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+  margin-bottom: 2px;
+}
+.detail-field .val { font-size: 14px; font-weight: 600; color: var(--text); }
+.detail-field .val.accent { color: var(--accent); }
+.detail-field .unit { font-size: 9px; color: var(--text-dim); margin-left: 2px; }
+
+.btn-track {
+  width: 100%;
+  padding: 10px;
+  margin-top: 16px;
+  background: rgba(0, 255, 136, 0.1);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  color: var(--accent);
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-track:hover { background: rgba(0, 255, 136, 0.2); }
+.btn-track.tracking { background: var(--accent); color: var(--bg); }
+
+/* ─── Bottom Controls ─── */
+.bottom-bar {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+.ctrl-btn {
+  padding: 8px 16px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  backdrop-filter: blur(20px);
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+.ctrl-btn:hover { border-color: var(--accent); color: var(--accent); }
+.ctrl-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0, 255, 136, 0.08); }
+
+/* ─── Altitude Legend ─── */
+.alt-legend {
+  position: absolute;
+  bottom: 50px;
+  right: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  backdrop-filter: blur(20px);
+  font-size: 9px;
+}
+.alt-legend-title {
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 6px;
+  font-size: 8px;
+}
+.alt-row { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.alt-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* ─── Loading Overlay ─── */
+.loading-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  transition: opacity 0.5s;
+}
+.loading-overlay.fade-out { opacity: 0; pointer-events: none; }
+
+.loading-spinner {
+  width: 40px; height: 40px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-text {
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* ─── Toggle Button ─── */
+.toggle-panel-btn {
+  position: absolute;
+  top: 58px;
+  left: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 14px;
+  padding: 6px 10px;
+  cursor: pointer;
+  z-index: 50;
+  display: none;
+  backdrop-filter: blur(20px);
+}
+
+/* ─── Notifications ─── */
+.notification {
+  position: fixed;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 1px;
+  backdrop-filter: blur(20px);
+  z-index: 300;
+  opacity: 0;
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+.notification.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.notification.error { border-color: var(--warn); color: var(--warn); }
+
+/* ─── Responsive ─── */
+@media (max-width: 768px) {
+  .top-bar { padding: 0 12px; }
+  .status-cluster { gap: 10px; }
+  .stat-label { display: none; }
+  .side-panel { width: 260px; }
+  .setup-panel { width: calc(100% - 32px); padding: 24px; }
+  .detail-panel { width: 240px; }
+  .alt-legend { display: none; }
+}
+
+@media (max-width: 480px) {
+  .logo .sub { display: none; }
+  .side-panel { width: 100%; left: 0; bottom: 0; top: 48px; border-radius: 0; }
+  .detail-panel { width: 100%; right: 0; top: auto; bottom: 0; border-radius: 6px 6px 0 0; }
+  .bottom-bar { bottom: auto; top: auto; }
+}

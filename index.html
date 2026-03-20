@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SKYBUDDY // 3D Flight Tracker</title>
+  <meta name="description" content="Real-time 3D flight tracking on an interactive globe with terrain, powered by Cesium.js and OpenSky Network.">
+  <meta name="theme-color" content="#0a0e14">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="SKYBUDDY — 3D Flight Tracker">
+  <meta property="og:description" content="Track aircraft in real-time on a 3D globe with terrain visualization.">
+  <meta property="og:type" content="website">
+
+  <!-- Favicon -->
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icon-180.png">
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Cesium -->
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Cesium.js"></script>
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- App Styles -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="cesiumContainer"></div>
+
+<!-- Notification Toast -->
+<div class="notification" id="notification"></div>
+
+<div id="hud">
+  <div class="top-bar">
+    <div class="logo">
+      SKYBUDDY <span class="sep">//</span> <span class="sub">3D FLIGHT TRACKER</span>
+    </div>
+    <div class="status-cluster">
+      <div class="stat">
+        <span class="stat-label">Aircraft</span>
+        <span class="stat-value" id="acCount">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Source</span>
+        <span class="stat-value" id="dataSource">OPENSKY</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Updated</span>
+        <span class="stat-value" id="lastUpdate">--:--:--</span>
+      </div>
+      <div class="stat">
+        <div class="pulse-dot" id="pulseDot"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Side Panel: Aircraft List -->
+  <div class="side-panel" id="sidePanel">
+    <div class="panel-header">
+      <span class="panel-title">Nearby Aircraft</span>
+      <button class="panel-close-btn" onclick="toggleSidePanel()">✕</button>
+    </div>
+    <input type="text" class="search-box" id="searchBox" placeholder="Search callsign / ICAO / country...">
+    <div class="aircraft-list" id="aircraftList"></div>
+  </div>
+
+  <button class="toggle-panel-btn" id="toggleBtn" onclick="showSidePanel()">☰</button>
+
+  <!-- Detail Panel: Selected Aircraft -->
+  <div class="detail-panel" id="detailPanel">
+    <button class="detail-close" onclick="closeDetail()">✕</button>
+    <div class="detail-callsign" id="detCallsign">---</div>
+    <div class="detail-country" id="detCountry">---</div>
+    <div class="detail-grid">
+      <div class="detail-field"><label>Altitude</label><div><span class="val accent" id="detAlt">---</span><span class="unit">ft</span></div></div>
+      <div class="detail-field"><label>Speed</label><div><span class="val" id="detSpeed">---</span><span class="unit">kts</span></div></div>
+      <div class="detail-field"><label>Heading</label><div><span class="val" id="detHdg">---</span><span class="unit">°</span></div></div>
+      <div class="detail-field"><label>Vert Rate</label><div><span class="val" id="detVsi">---</span><span class="unit">fpm</span></div></div>
+      <div class="detail-field"><label>Latitude</label><div><span class="val" id="detLat">---</span></div></div>
+      <div class="detail-field"><label>Longitude</label><div><span class="val" id="detLon">---</span></div></div>
+      <div class="detail-field"><label>ICAO24</label><div><span class="val" id="detIcao">---</span></div></div>
+      <div class="detail-field"><label>On Ground</label><div><span class="val" id="detGnd">---</span></div></div>
+    </div>
+    <button class="btn-track" id="btnTrack" onclick="toggleTracking()">◎ TRACK AIRCRAFT</button>
+  </div>
+
+  <!-- Altitude Legend -->
+  <div class="alt-legend">
+    <div class="alt-legend-title">Altitude</div>
+    <div class="alt-row"><div class="alt-dot" style="background:#00ff88"></div><span style="color:var(--text-dim)">&lt; 5,000 ft</span></div>
+    <div class="alt-row"><div class="alt-dot" style="background:#00b4d8"></div><span style="color:var(--text-dim)">5K – 15K ft</span></div>
+    <div class="alt-row"><div class="alt-dot" style="background:#ff9f1c"></div><span style="color:var(--text-dim)">15K – 30K ft</span></div>
+    <div class="alt-row"><div class="alt-dot" style="background:#ff6b35"></div><span style="color:var(--text-dim)">&gt; 30,000 ft</span></div>
+    <div class="alt-row"><div class="alt-dot" style="background:#5a6a7a"></div><span style="color:var(--text-dim)">On ground</span></div>
+  </div>
+
+  <!-- Bottom Controls -->
+  <div class="bottom-bar">
+    <button class="ctrl-btn active" id="btnLabels" onclick="toggleLabels()">Labels</button>
+    <button class="ctrl-btn" id="btnPaths" onclick="togglePaths()">Trails</button>
+    <button class="ctrl-btn" onclick="flyHome()">Home</button>
+    <button class="ctrl-btn" onclick="refreshData()">↻ Refresh</button>
+    <button class="ctrl-btn" onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<!-- Setup Panel -->
+<div class="setup-panel" id="setupPanel">
+  <h2>SKYBUDDY</h2>
+  <p>
+    Real-time 3D flight tracking on a globe with terrain.<br>
+    Powered by <a href="https://cesium.com" target="_blank">Cesium.js</a> + <a href="https://opensky-network.org" target="_blank">OpenSky Network</a>.<br><br>
+    Get a free Cesium ion token → <a href="https://ion.cesium.com/tokens" target="_blank">ion.cesium.com/tokens</a><br>
+    OpenSky auth is optional (anonymous = rate-limited).
+  </p>
+  <div class="input-group">
+    <label>Cesium Ion Access Token (required)</label>
+    <input type="text" id="cesiumToken" placeholder="eyJhbGci...">
+  </div>
+  <div class="input-group">
+    <label>OpenSky Username (optional)</label>
+    <input type="text" id="osUser" placeholder="anonymous">
+  </div>
+  <div class="input-group">
+    <label>OpenSky Password (optional)</label>
+    <input type="password" id="osPass" placeholder="optional">
+  </div>
+  <button class="btn-launch" onclick="initApp()">LAUNCH TRACKER ▸</button>
+  <div class="setup-note">
+    Keyboard shortcuts: <strong>L</strong> labels · <strong>T</strong> trails · <strong>H</strong> home · <strong>R</strong> refresh · <strong>Esc</strong> close detail
+  </div>
+  <div class="setup-footer">SKYBUDDY v1.0.0</div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay" style="display:none;">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loadingText">Initializing Globe...</div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>

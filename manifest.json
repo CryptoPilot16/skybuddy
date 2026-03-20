@@ -1,0 +1,16 @@
+{
+  "name": "SKYBUDDY — 3D Flight Tracker",
+  "short_name": "SKYBUDDY",
+  "description": "Real-time 3D flight tracking on an interactive globe",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0e14",
+  "theme_color": "#0a0e14",
+  "icons": [
+    {
+      "src": "assets/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
