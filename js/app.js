@@ -348,24 +348,45 @@ function renderWatchlistPanel() {
 
 
 // ─── Schedule ───
-function loadSchedule() {
+async function loadSchedule() {
+  // Try server first (syncs across devices)
+  try {
+    const resp = await fetch('/api/schedule');
+    if (resp.ok) {
+      const data = await resp.json();
+      if (Array.isArray(data) && data.length > 0) {
+        schedule = data;
+        localStorage.setItem('skybuddy_schedule', JSON.stringify(schedule));
+        return;
+      }
+    }
+  } catch (e) { console.warn('Server schedule fetch failed:', e); }
+
+  // Fall back to localStorage
   try {
     const saved = localStorage.getItem('skybuddy_schedule');
     if (saved) {
       schedule = JSON.parse(saved);
-    } else {
-      // Default demo schedule: Kalitta cargo run JFK→PANC→RJAA
-      const now = Date.now();
-      schedule = [
-        { id: 'demo1', flightNumber: 'CKS241', departure: 'KJFK', arrival: 'PANC', dateTime: new Date(now).toISOString(), onboard: true, notes: 'Leg 1: JFK to Anchorage' },
-        { id: 'demo2', flightNumber: 'CKS241', departure: 'PANC', arrival: 'RJAA', dateTime: new Date(now + 3600000 * 7).toISOString(), onboard: false, notes: 'Leg 2: Anchorage to Narita' },
-      ];
-      saveSchedule();
+      // Push local data to server so it syncs
+      if (schedule.length > 0) syncScheduleToServer();
+      return;
     }
-  } catch (e) { schedule = []; }
+  } catch (e) {}
+
+  schedule = [];
 }
+
 function saveSchedule() {
   try { localStorage.setItem('skybuddy_schedule', JSON.stringify(schedule)); } catch (e) {}
+  syncScheduleToServer();
+}
+
+function syncScheduleToServer() {
+  fetch('/api/schedule', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(schedule),
+  }).catch(e => console.warn('Schedule sync failed:', e));
 }
 
 // ─── Demo Flight Simulation ───
@@ -995,8 +1016,9 @@ function tryAutoLogin() {
     wlStatus.textContent = watchlistActive ? 'ACTIVE' : 'OFF';
     wlStatus.style.color = watchlistActive ? 'var(--accent)' : 'var(--text-dim)';
   }
-  loadSchedule();
-  renderSchedulePanel();
+  loadSchedule().then(() => {
+    renderSchedulePanel();
+  });
   // Schedule always visible; watchlist panel only on desktop (filter is always active)
   document.getElementById('schedulePanel').classList.add('visible');
   if (!isMobile()) {
