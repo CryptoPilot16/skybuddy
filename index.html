@@ -90,21 +90,63 @@
       <button class="detail-minimize" onclick="toggleDetailMinimize()">▾</button>
       <button class="detail-close" onclick="closeDetail()">✕</button>
     </div>
+
+    <!-- Callsign + Tags -->
     <div class="detail-callsign" id="detCallsign">---</div>
     <div class="detail-country" id="detCountry">---</div>
+    <div class="detail-tags">
+      <span class="det-tag" id="detReg">---</span>
+      <span class="det-tag" id="detType">---</span>
+      <span class="det-tag" id="detIcao">---</span>
+    </div>
+    <div class="detail-status" id="detStatus">EN ROUTE</div>
+
+    <!-- Route Card -->
+    <div class="detail-route-card">
+      <div class="route-section">
+        <div class="route-label">ORIGIN</div>
+        <div class="route-code" id="detOriginCode">---</div>
+        <div class="route-name" id="detOriginName"></div>
+      </div>
+      <div class="route-progress">
+        <div class="route-progress-bar"><div class="route-progress-fill" id="detProgressFill"></div></div>
+        <div class="route-progress-icon">▶</div>
+        <div class="route-progress-pct" id="detProgressPct"></div>
+      </div>
+      <div class="route-section">
+        <div class="route-label">DESTINATION</div>
+        <div class="route-code accent" id="detDestCode">---</div>
+        <div class="route-name" id="detDestName"></div>
+      </div>
+    </div>
+
+    <!-- Flight Data Grid -->
     <div class="detail-grid">
       <div class="detail-field"><label>Altitude</label><div><span class="val accent" id="detAlt">---</span><span class="unit">ft</span></div></div>
       <div class="detail-field"><label>Speed</label><div><span class="val" id="detSpeed">---</span><span class="unit">kts</span></div></div>
       <div class="detail-field"><label>Heading</label><div><span class="val" id="detHdg">---</span><span class="unit">°</span></div></div>
       <div class="detail-field"><label>Vert Rate</label><div><span class="val" id="detVsi">---</span><span class="unit">fpm</span></div></div>
-      <div class="detail-field"><label>ICAO24</label><div><span class="val" id="detIcao">---</span></div></div>
-      <div class="detail-field"><label>Type</label><div><span class="val accent" id="detType">---</span></div></div>
-      <div class="detail-field"><label>Registration</label><div><span class="val accent" id="detReg">---</span></div></div>
-      <div class="detail-field detail-wide"><label>Owner</label><div><span class="val" id="detOwner">---</span></div></div>
-      <div class="detail-field detail-wide"><label>Destination (est.)</label><div><span class="val accent" id="detDest">---</span></div></div>
-      <div class="detail-field detail-wide"><label>ETA</label><div><span class="val accent" id="detEta">---</span></div></div>
-      <div class="detail-field detail-wide"><label>Distance</label><div><span class="val" id="detDist">---</span></div></div>
     </div>
+
+    <!-- Times -->
+    <div class="detail-times">
+      <div class="time-box">
+        <div class="time-label">ETA</div>
+        <div class="time-value accent" id="detEta">---</div>
+      </div>
+      <div class="time-box">
+        <div class="time-label">DISTANCE</div>
+        <div class="time-value" id="detDist">---</div>
+      </div>
+    </div>
+
+    <!-- Owner / Manufacturer -->
+    <div class="detail-owner">
+      <div class="detail-field detail-wide"><label>Owner</label><div><span class="val" id="detOwner">---</span></div></div>
+      <div class="detail-field detail-wide"><label>Manufacturer</label><div><span class="val" id="detMfg">---</span></div></div>
+    </div>
+
+    <!-- Actions -->
     <div class="detail-actions">
       <button class="btn-track" id="btnTrack" onclick="toggleTracking()">◎ TRACK</button>
       <button class="btn-track" id="btnOrbit" onclick="toggleOrbitMode()">⟳ ORBIT</button>

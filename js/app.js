@@ -2262,23 +2262,34 @@ function selectAircraft(icao) {
 function updateDetailPanel(ac) {
   document.getElementById('detCallsign').textContent = ac.callsign || ac.icao;
   document.getElementById('detCountry').textContent = ac.country;
+
+  // Tags: reg, type, icao
+  document.getElementById('detIcao').textContent = ac.icao;
+  document.getElementById('detType').textContent = ac.acType || '—';
+
+  // Status badge
+  const statusEl = document.getElementById('detStatus');
+  if (ac.onGround) {
+    statusEl.textContent = 'ON GROUND';
+    statusEl.className = 'detail-status on-ground';
+  } else {
+    statusEl.textContent = 'EN ROUTE';
+    statusEl.className = 'detail-status';
+  }
+
+  // Flight data
   document.getElementById('detAlt').textContent = mToFt(ac.alt).toLocaleString();
   document.getElementById('detSpeed').textContent = msToKts(ac.velocity);
   document.getElementById('detHdg').textContent = Math.round(ac.heading || 0);
   document.getElementById('detVsi').textContent = msToFpm(ac.vertRate);
-  const latEl = document.getElementById('detLat'); if (latEl) latEl.textContent = (ac.lat || 0).toFixed(4);
-  const lonEl = document.getElementById('detLon'); if (lonEl) lonEl.textContent = (ac.lon || 0).toFixed(4);
-  document.getElementById('detIcao').textContent = ac.icao;
-  document.getElementById('detType').textContent = ac.acType || '—';
-  const gndEl = document.getElementById('detGnd'); if (gndEl) gndEl.textContent = ac.onGround ? 'YES' : 'NO';
 
-  // Populate hexdb-enriched fields if cached, else reset to loading state
+  // Hexdb-enriched fields
   const cached = hexdbCache[ac.icao ? ac.icao.toUpperCase() : ''];
   const regEl = document.getElementById('detReg');
   const ownerEl = document.getElementById('detOwner');
   const mfgEl = document.getElementById('detMfg');
   if (cached) {
-    if (regEl) regEl.textContent = cached.Registration || '—';
+    if (regEl) regEl.textContent = cached.Registration || ac.icao;
     if (ownerEl) ownerEl.textContent = cached.RegisteredOwners || '—';
     if (mfgEl) mfgEl.textContent = cached.Manufacturer ? `${cached.Manufacturer} ${cached.Type || ''}`.trim() : '—';
   } else {
@@ -2287,14 +2298,59 @@ function updateDetailPanel(ac) {
     if (mfgEl) mfgEl.textContent = '…';
   }
 
-  // ETA estimation
+  // Route card + ETA
   const dest = estimateDestination(ac);
-  if (dest.airport) {
-    document.getElementById('detDest').textContent = `${dest.airport.icao} — ${dest.airport.name}`;
-    document.getElementById('detEta').textContent = formatEta(dest.etaMin);
-    document.getElementById('detDist').textContent = `${dest.distKm.toLocaleString()} km / ${Math.round(dest.distKm * 0.539957).toLocaleString()} nm`;
+  const originEl = document.getElementById('detOriginCode');
+  const originNameEl = document.getElementById('detOriginName');
+  const destCodeEl = document.getElementById('detDestCode');
+  const destNameEl = document.getElementById('detDestName');
+  const progressFill = document.getElementById('detProgressFill');
+  const progressPct = document.getElementById('detProgressPct');
+
+  // Try to get route from VRS cache
+  const route = routeCache[ac.callsign];
+  if (route && route.length >= 2) {
+    const origin = route[0];
+    const destination = route[route.length - 1];
+    originEl.textContent = origin.icao || origin.iata || '—';
+    originNameEl.textContent = origin.name || '';
+    destCodeEl.textContent = destination.icao || destination.iata || '—';
+    destNameEl.textContent = destination.name || '';
+
+    // Calculate progress percentage
+    if (dest.airport && dest.distKm > 0) {
+      const originLat = origin.lat || 0, originLon = origin.lon || 0;
+      const destLat = destination.lat || dest.airport.lat, destLon = destination.lon || dest.airport.lon;
+      const totalDist = haversineDistance(originLat, originLon, destLat, destLon);
+      const remaining = dest.distKm;
+      const pct = totalDist > 0 ? Math.max(0, Math.min(100, ((totalDist - remaining) / totalDist) * 100)) : 0;
+      progressFill.style.width = pct.toFixed(0) + '%';
+      progressPct.textContent = pct.toFixed(0) + '%';
+    } else {
+      progressFill.style.width = '0%';
+      progressPct.textContent = '';
+    }
+  } else if (dest.airport) {
+    originEl.textContent = '—';
+    originNameEl.textContent = '';
+    destCodeEl.textContent = dest.airport.icao;
+    destNameEl.textContent = dest.airport.name;
+    progressFill.style.width = '0%';
+    progressPct.textContent = '';
   } else {
-    document.getElementById('detDest').textContent = ac.onGround ? 'On ground' : 'Calculating...';
+    originEl.textContent = '—';
+    originNameEl.textContent = '';
+    destCodeEl.textContent = ac.onGround ? 'GND' : '…';
+    destNameEl.textContent = ac.onGround ? 'On ground' : 'Calculating';
+    progressFill.style.width = '0%';
+    progressPct.textContent = '';
+  }
+
+  // ETA + Distance
+  if (dest.airport) {
+    document.getElementById('detEta').textContent = formatEta(dest.etaMin);
+    document.getElementById('detDist').textContent = `${dest.distKm.toLocaleString()} km`;
+  } else {
     document.getElementById('detEta').textContent = '—';
     document.getElementById('detDist').textContent = '—';
   }

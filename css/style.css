@@ -338,12 +338,12 @@ body {
   position: absolute;
   top: 46px;
   right: 0;
-  width: 260px;
+  width: 300px;
   max-height: calc(100vh - 60px);
   overflow-y: auto;
   background: var(--panel);
   border: 1px solid var(--border);
-  padding: 12px;
+  padding: 14px;
   display: none;
 }
 .detail-panel.visible { display: block; }
@@ -352,7 +352,7 @@ body {
   display: flex;
   justify-content: flex-end;
   gap: 4px;
-  margin: -12px -12px 6px -12px;
+  margin: -14px -14px 8px -14px;
   padding: 4px 8px;
   cursor: grab;
   user-select: none;
@@ -368,33 +368,131 @@ body {
   font-family: var(--mono);
 }
 .detail-close:hover { color: var(--warn); }
-.detail-minimize {
-  display: none;
-}
+.detail-minimize { display: none; }
 
 .detail-callsign {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--accent);
   margin-bottom: 2px;
   letter-spacing: 2px;
 }
-.detail-callsign::before { content: '> '; color: var(--text-dim); font-weight: 400; font-size: 14px; }
 .detail-country {
   font-size: 9px;
   color: var(--text-dim);
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
+
+/* Tags: reg, type, icao as inline badges */
+.detail-tags {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.det-tag {
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.5px;
+  font-family: var(--mono);
+}
+
+/* Status badge */
+.detail-status {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  background: rgba(0, 255, 136, 0.15);
+  color: var(--accent);
+  border: 1px solid rgba(0, 255, 136, 0.3);
+}
+.detail-status.on-ground {
+  background: rgba(255, 159, 28, 0.15);
+  color: var(--gold);
+  border-color: rgba(255, 159, 28, 0.3);
+}
+
+/* Route Card */
+.detail-route-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.route-section { margin-bottom: 6px; }
+.route-section:last-of-type { margin-bottom: 0; margin-top: 8px; }
+.route-label {
+  font-size: 7px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+  margin-bottom: 2px;
+}
+.route-code {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 1px;
+}
+.route-code.accent { color: var(--accent); }
+.route-name {
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+/* Progress bar */
+.route-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+}
+.route-progress-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.route-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.5s ease;
+  width: 0%;
+}
+.route-progress-icon {
+  color: var(--accent);
+  font-size: 8px;
+}
+.route-progress-pct {
+  font-size: 9px;
+  color: var(--text-dim);
+  min-width: 32px;
+  text-align: right;
+}
+
+/* Flight data grid */
 .detail-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+  margin-bottom: 12px;
 }
 .detail-field {
-  border-left: 1px solid var(--border);
-  padding-left: 6px;
+  border-left: 2px solid var(--border);
+  padding-left: 8px;
 }
 .detail-field label {
   display: block;
@@ -404,10 +502,48 @@ body {
   color: var(--text-dim);
   margin-bottom: 1px;
 }
-.detail-field .val { font-size: 13px; font-weight: 600; color: var(--text); }
+.detail-field .val { font-size: 14px; font-weight: 600; color: var(--text); }
 .detail-field .val.accent { color: var(--accent); }
 .detail-field .unit { font-size: 8px; color: var(--text-dim); margin-left: 2px; }
+.detail-wide { grid-column: 1 / -1; }
 
+/* Times: ETA + Distance side by side */
+.detail-times {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.time-box {
+  flex: 1;
+  background: rgba(0, 255, 136, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 10px;
+  text-align: center;
+}
+.time-label {
+  font-size: 7px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+.time-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+.time-value.accent { color: var(--accent); }
+
+/* Owner section */
+.detail-owner {
+  margin-bottom: 10px;
+}
+.detail-owner .detail-field {
+  margin-bottom: 6px;
+}
+
+/* Action buttons */
 .btn-track {
   width: 100%;
   padding: 8px;
@@ -425,11 +561,10 @@ body {
 .btn-track:hover { background: rgba(0, 255, 136, 0.1); }
 .btn-track.tracking { background: var(--accent); color: var(--bg); }
 
-.detail-wide { grid-column: 1 / -1; }
 .detail-actions {
   display: flex;
   gap: 6px;
-  margin-top: 12px;
+  margin-top: 4px;
 }
 .detail-actions .btn-track {
   flex: 1;
@@ -1219,7 +1354,12 @@ body {
   .detail-panel.minimized { max-height: 56px; overflow: hidden; padding: 10px 12px; }
   .detail-panel.minimized::before { margin-bottom: 6px; }
   .detail-panel.minimized .detail-country,
+  .detail-panel.minimized .detail-tags,
+  .detail-panel.minimized .detail-status,
+  .detail-panel.minimized .detail-route-card,
   .detail-panel.minimized .detail-grid,
+  .detail-panel.minimized .detail-times,
+  .detail-panel.minimized .detail-owner,
   .detail-panel.minimized .detail-actions { display: none; }
   .detail-panel.minimized .detail-callsign { font-size: 14px; margin-bottom: 0; }
   .detail-minimize {
