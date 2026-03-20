@@ -1112,19 +1112,17 @@ body {
   .top-controls { gap: 2px; flex-shrink: 0; }
   .top-controls .ctrl-btn { padding: 2px 6px; font-size: 8px; min-height: 22px; white-space: nowrap; }
 
-  /* Side panel: full-width slide-in drawer */
+  /* Side panel: collapsed left strip on mobile, expands on OTHERS toggle */
   .side-panel {
-    width: 100%; left: 0; right: 0;
+    width: 55%; left: 0;
     top: 28px;
-    bottom: 0;
+    bottom: 160px;
     z-index: 70;
     border: none;
-    border-top: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    transition: transform 0.2s ease;
   }
   .side-panel.hidden { transform: translateX(-100%); }
-  /* Start side panel hidden on mobile */
-  .side-panel { transform: translateX(-100%); }
-  .side-panel.visible { transform: translateX(0); }
   .search-box {
     font-size: 16px; padding: 12px;
     -webkit-text-size-adjust: 100%;
@@ -1244,13 +1242,13 @@ body {
 
   /* Watchlist panel: full width bottom sheet */
   .watchlist-panel {
-    width: 100%; right: 0; left: 0;
+    width: 55%; right: auto; left: 0;
     top: 28px;
-    max-height: 65vh;
+    max-height: 50vh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     border: none;
-    border-top: 1px solid var(--border);
+    border-right: 1px solid var(--border);
     z-index: 75;
   }
   .wl-input {
