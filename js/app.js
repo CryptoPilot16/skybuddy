@@ -1031,16 +1031,18 @@ async function fetchAircraft() {
   // When watchlist is active, use wide-radius search to find all watched aircraft worldwide
   if (watchlistActive && watchlist.length > 0) {
     try {
-      // Search from multiple points to get global coverage
+      // Search from multiple points with large radius for global coverage
       const searchPoints = [
-        { lat: 42.23, lon: -83.53 },  // KYIP (Kalitta HQ / North America)
-        { lat: 51.47, lon: -0.45 },   // EGLL (Europe)
-        { lat: 25.25, lon: 55.37 },   // OMDB (Middle East / Asia)
+        { lat: 45, lon: -100 },   // North America
+        { lat: 50, lon: 10 },     // Europe
+        { lat: 25, lon: 80 },     // Asia / Middle East
+        { lat: -10, lon: 140 },   // SE Asia / Oceania
+        { lat: 35, lon: 140 },    // East Asia / Pacific
       ];
       const allResults = {};
       const fetches = searchPoints.map(async (pt) => {
         try {
-          const resp = await fetch(`/api/adsb/v2/lat/${pt.lat}/lon/${pt.lon}/dist/5000`);
+          const resp = await fetch(`/api/adsb/v2/lat/${pt.lat}/lon/${pt.lon}/dist/12000`);
           if (!resp.ok) return;
           const data = await resp.json();
           const parsed = parseAdsbLolData(data);
