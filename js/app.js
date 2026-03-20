@@ -346,6 +346,8 @@ function passesWatchlist(ac) {
 }
 
 function toggleWatchlistPanel() {
+  document.getElementById('schedulePanel').classList.remove('visible');
+  document.getElementById('settingsPanel').classList.remove('visible');
   const panel = document.getElementById('watchlistPanel');
   panel.classList.toggle('visible');
 }
@@ -378,6 +380,85 @@ function loadSchedule() {
 }
 function saveSchedule() {
   try { localStorage.setItem('skybuddy_schedule', JSON.stringify(schedule)); } catch (e) {}
+}
+
+// ─── Demo Flight Simulation ───
+let demoFlightInterval = null;
+let demoProgress = 0;
+
+function startDemoFlight() {
+  if (demoFlightInterval) return;
+  const onboard = schedule.find(s => s.onboard);
+  if (!onboard) return;
+
+  const depApt = AIRPORTS.find(a => a.icao === onboard.departure);
+  const arrApt = AIRPORTS.find(a => a.icao === onboard.arrival);
+  if (!depApt || !arrApt) return;
+
+  const geodesic = new Cesium.EllipsoidGeodesic(
+    Cesium.Cartographic.fromDegrees(depApt.lon, depApt.lat),
+    Cesium.Cartographic.fromDegrees(arrApt.lon, arrApt.lat)
+  );
+  const cruiseAlt = 10668; // FL350 in meters
+
+  // Start 20% into the flight so it's already airborne
+  demoProgress = 0.2;
+  const demoIcao = 'demo_ac';
+  const cs = onboard.flightNumber;
+
+  demoFlightInterval = setInterval(() => {
+    demoProgress += 0.002; // ~0.2% per tick
+    if (demoProgress >= 0.95) {
+      demoProgress = 0.2; // loop back
+    }
+
+    const t = demoProgress;
+    const pt = geodesic.interpolateUsingFraction(t);
+    const lon = Cesium.Math.toDegrees(pt.longitude);
+    const lat = Cesium.Math.toDegrees(pt.latitude);
+
+    // Altitude profile
+    let alt = cruiseAlt;
+    if (t < 0.15) alt = cruiseAlt * (t / 0.15);
+    else if (t > 0.85) alt = cruiseAlt * ((1 - t) / 0.15);
+
+    // Heading from current point to next point
+    const nextPt = geodesic.interpolateUsingFraction(Math.min(t + 0.01, 1));
+    const nextLon = Cesium.Math.toDegrees(nextPt.longitude);
+    const nextLat = Cesium.Math.toDegrees(nextPt.latitude);
+    const heading = bearingTo(lat, lon, nextLat, nextLon);
+
+    aircraftData[demoIcao] = {
+      icao: demoIcao,
+      callsign: cs,
+      country: 'United States',
+      lon, lat,
+      alt: alt,
+      onGround: false,
+      velocity: 250, // ~485 kts
+      heading: heading,
+      vertRate: t < 0.15 ? 5 : t > 0.85 ? -5 : 0,
+      geoAlt: alt,
+      acType: 'B744',
+      origin: onboard.departure,
+      destination: onboard.arrival,
+    };
+
+    // Match to schedule
+    scheduleMatches.set(onboard.id, demoIcao);
+  }, 500);
+}
+
+function stopDemoFlight() {
+  if (demoFlightInterval) {
+    clearInterval(demoFlightInterval);
+    demoFlightInterval = null;
+    delete aircraftData['demo_ac'];
+    if (aircraftEntities['demo_ac']) {
+      viewer.entities.remove(aircraftEntities['demo_ac']);
+      delete aircraftEntities['demo_ac'];
+    }
+  }
 }
 
 function addScheduleEntry() {
@@ -413,9 +494,10 @@ function removeScheduleEntry(id) {
 }
 
 function toggleSchedulePanel() {
+  document.getElementById('watchlistPanel').classList.remove('visible');
+  document.getElementById('settingsPanel').classList.remove('visible');
   const panel = document.getElementById('schedulePanel');
   panel.classList.toggle('visible');
-  document.getElementById('watchlistPanel').classList.remove('visible');
 }
 
 function renderSchedulePanel() {
@@ -751,6 +833,10 @@ function initApp() {
       overlay.classList.add('fade-out');
       setTimeout(() => overlay.style.display = 'none', 600);
       notify('SKYBUDDY online — tracking live aircraft');
+      // Start demo flight if schedule has an onboard flight with no live match
+      if (schedule.find(s => s.onboard) && scheduleMatches.size === 0) {
+        startDemoFlight();
+      }
     });
 
     refreshInterval = setInterval(fetchAircraft, CONFIG.REFRESH_INTERVAL);
@@ -796,6 +882,8 @@ function tryAutoLogin() {
 
 // ─── Settings Panel ───
 function toggleSettingsPanel() {
+  document.getElementById('watchlistPanel').classList.remove('visible');
+  document.getElementById('schedulePanel').classList.remove('visible');
   const panel = document.getElementById('settingsPanel');
   panel.classList.toggle('visible');
   if (panel.classList.contains('visible')) {
@@ -2326,21 +2414,45 @@ function renderMinimap() {
     });
   }
 
-  // Schedule route lines on minimap
+  // Schedule route lines on minimap (great-circle arcs)
   schedule.forEach(s => {
     const depApt = AIRPORTS.find(a => a.icao === s.departure);
     const arrApt = AIRPORTS.find(a => a.icao === s.arrival);
     if (!depApt || !arrApt) return;
     const isLive = scheduleMatches.has(s.id);
     const isOnboard = s.onboard && isLive;
-    minimapCtx.strokeStyle = isOnboard ? 'rgba(218, 165, 32, 0.5)' : isLive ? 'rgba(0, 255, 136, 0.3)' : 'rgba(85, 85, 85, 0.2)';
-    minimapCtx.lineWidth = isOnboard ? 2 : 1;
+    minimapCtx.strokeStyle = isOnboard ? 'rgba(218, 165, 32, 0.8)' : isLive ? 'rgba(0, 255, 136, 0.6)' : 'rgba(0, 180, 216, 0.4)';
+    minimapCtx.lineWidth = isOnboard ? 2.5 : 1.5;
     minimapCtx.setLineDash(isLive ? [] : [4, 4]);
+
+    // Great-circle arc on minimap
+    const startCart = Cesium.Cartographic.fromDegrees(depApt.lon, depApt.lat);
+    const endCart = Cesium.Cartographic.fromDegrees(arrApt.lon, arrApt.lat);
+    const geodesic = new Cesium.EllipsoidGeodesic(startCart, endCart);
+    const arcSteps = 40;
     minimapCtx.beginPath();
-    minimapCtx.moveTo((depApt.lon + 180) / 360 * w, h / 2 - (depApt.lat / 90) * (h / 2));
-    minimapCtx.lineTo((arrApt.lon + 180) / 360 * w, h / 2 - (arrApt.lat / 90) * (h / 2));
+    for (let i = 0; i <= arcSteps; i++) {
+      const t = i / arcSteps;
+      const pt = geodesic.interpolateUsingFraction(t);
+      const lon = Cesium.Math.toDegrees(pt.longitude);
+      const lat = Cesium.Math.toDegrees(pt.latitude);
+      const mx = (lon + 180) / 360 * w;
+      const my = h / 2 - (lat / 90) * (h / 2);
+      if (i === 0) minimapCtx.moveTo(mx, my);
+      else minimapCtx.lineTo(mx, my);
+    }
     minimapCtx.stroke();
     minimapCtx.setLineDash([]);
+
+    // Airport dots for schedule
+    [depApt, arrApt].forEach(apt => {
+      const ax = (apt.lon + 180) / 360 * w;
+      const ay = h / 2 - (apt.lat / 90) * (h / 2);
+      minimapCtx.fillStyle = isOnboard ? 'rgba(218, 165, 32, 0.9)' : 'rgba(0, 180, 216, 0.7)';
+      minimapCtx.beginPath();
+      minimapCtx.arc(ax, ay, 3, 0, Math.PI * 2);
+      minimapCtx.fill();
+    });
   });
 
   // Aircraft positions — store for click detection

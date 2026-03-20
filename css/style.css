@@ -505,7 +505,7 @@ body {
 /* ─── Settings Panel ─── */
 .settings-panel {
   position: absolute;
-  bottom: 50px;
+  top: 46px;
   right: 8px;
   width: 320px;
   background: var(--panel);
