@@ -164,11 +164,19 @@
   <!-- Flight Banner (active onboard flight) -->
   <div class="flight-banner" id="flightBanner">
     <div class="fb-route" id="fbRoute">---</div>
-    <div class="fb-eta-label">ETA</div>
-    <div class="fb-eta" id="fbEta">--:--</div>
+    <div class="fb-dest" id="fbDest"></div>
+    <div class="fb-eta-row">
+      <div>
+        <div class="fb-eta-label">ETA</div>
+        <div class="fb-eta" id="fbEta">--:--</div>
+      </div>
+      <div class="fb-eta-arrival" id="fbArrival"></div>
+    </div>
     <div class="fb-progress"><div class="fb-progress-fill" id="fbProgress"></div></div>
     <div class="fb-stats">
-      <span id="fbAlt">---</span> ft &middot; <span id="fbSpeed">---</span> kts &middot; <span id="fbDist">---</span> km remaining
+      <span class="fb-stat-item"><span id="fbAlt">---</span> ft</span>
+      <span class="fb-stat-item"><span id="fbSpeed">---</span> kts</span>
+      <span class="fb-stat-item"><span id="fbDist">---</span> km rem</span>
     </div>
   </div>
 
@@ -217,7 +225,6 @@
     <button class="ctrl-btn" id="btnSchedule" onclick="toggleSchedulePanel()"><span class="btn-icon">✈</span><span class="btn-label">Schedule</span></button>
     <button class="ctrl-btn" id="btnWatchlist" onclick="toggleWatchlistPanel()"><span class="btn-icon">★</span><span class="btn-label">Watch</span></button>
     <button class="ctrl-btn active" id="btnLabels" onclick="toggleLabels()"><span class="btn-icon">Aa</span><span class="btn-label">Labels</span></button>
-    <button class="ctrl-btn" id="btnPaths" onclick="togglePaths()"><span class="btn-icon">╌</span><span class="btn-label">Trails</span></button>
     <button class="ctrl-btn" id="btnConflicts" onclick="toggleConflicts()"><span class="btn-icon">⚠</span><span class="btn-label">Conflicts</span></button>
     <button class="ctrl-btn" onclick="refreshData()"><span class="btn-icon">↻</span><span class="btn-label">Refresh</span></button>
   </div>

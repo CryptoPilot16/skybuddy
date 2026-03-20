@@ -599,6 +599,10 @@ function updateFlightBanner() {
   const depApt = AIRPORTS.find(a => a.icao === onboard.departure);
 
   document.getElementById('fbRoute').textContent = onboard.flightNumber + ' // ' + onboard.departure + ' \u2192 ' + onboard.arrival;
+  // Show destination airport name
+  const destEl = document.getElementById('fbDest');
+  if (destEl) destEl.textContent = arrApt ? 'Landing at ' + (arrApt.name || onboard.arrival) : '';
+
   document.getElementById('fbAlt').textContent = mToFt(ac.alt || ac.geoAlt || 0).toLocaleString();
   document.getElementById('fbSpeed').textContent = msToKts(ac.velocity);
 
@@ -611,8 +615,17 @@ function updateFlightBanner() {
       const hrs = Math.floor(etaHrs);
       const mins = Math.round((etaHrs - hrs) * 60);
       document.getElementById('fbEta').textContent = (hrs > 0 ? hrs + 'h ' : '') + mins + 'm';
+      // Show estimated arrival time
+      const arrivalEl = document.getElementById('fbArrival');
+      if (arrivalEl) {
+        const now = new Date();
+        const arrivalTime = new Date(now.getTime() + etaHrs * 3600000);
+        arrivalEl.textContent = 'Arriving ~' + arrivalTime.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+      }
     } else {
       document.getElementById('fbEta').textContent = '--:--';
+      const arrivalEl = document.getElementById('fbArrival');
+      if (arrivalEl) arrivalEl.textContent = '';
     }
     if (depApt) {
       const totalDist = haversineDistance(depApt.lat, depApt.lon, arrApt.lat, arrApt.lon);
@@ -622,6 +635,8 @@ function updateFlightBanner() {
   } else {
     document.getElementById('fbEta').textContent = '--:--';
     document.getElementById('fbDist').textContent = '---';
+    const arrivalEl = document.getElementById('fbArrival');
+    if (arrivalEl) arrivalEl.textContent = '';
   }
   banner.classList.add('visible');
 }
@@ -1613,6 +1628,46 @@ async function drawRouteForAircraft(ac) {
     }
   }
 
+  // Route midpoint label — callsign + flight duration
+  if (futureWps.length >= 2 && waypoints.length >= 2) {
+    const origin = waypoints[0], dest = waypoints[waypoints.length - 1];
+    const totalDist = haversineDistance(origin.lat, origin.lon, dest.lat, dest.lon);
+    const speedKmH = (ac.velocity || 0) * 3.6;
+    // Place label at midpoint of FUTURE route
+    const midFuture = futureWps[Math.floor(futureWps.length / 2)];
+    let durationStr = '';
+    if (speedKmH > 50) {
+      const remainDist = haversineDistance(ac.lat, ac.lon, dest.lat, dest.lon);
+      const etaHrs = remainDist / speedKmH;
+      const hrs = Math.floor(etaHrs);
+      const mins = Math.round((etaHrs - hrs) * 60);
+      durationStr = ' // ' + (hrs > 0 ? hrs + 'h ' : '') + mins + 'm';
+    } else if (speedKmH > 0) {
+      const totalHrs = totalDist / speedKmH;
+      const hrs = Math.floor(totalHrs);
+      const mins = Math.round((totalHrs - hrs) * 60);
+      durationStr = ' // ~' + (hrs > 0 ? hrs + 'h ' : '') + mins + 'm';
+    }
+    const routeLabelText = cs + durationStr;
+    routeEntities.push(viewer.entities.add({
+      position: Cesium.Cartesian3.fromDegrees(midFuture.lon, midFuture.lat, alt * 0.7),
+      label: {
+        text: routeLabelText,
+        font: isMobile() ? '12px JetBrains Mono' : '11px JetBrains Mono',
+        fillColor: Cesium.Color.fromCssColorString('rgba(218, 165, 32, 0.9)'),
+        outlineColor: Cesium.Color.BLACK, outlineWidth: 3,
+        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+        pixelOffset: new Cesium.Cartesian2(0, -16),
+        horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
+        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        backgroundColor: Cesium.Color.fromCssColorString('rgba(0,0,0,0.65)'),
+        showBackground: true, backgroundPadding: new Cesium.Cartesian2(8, 4),
+        scaleByDistance: new Cesium.NearFarScalar(1e4, 1.0, 1e7, 0.5),
+      },
+    }));
+  }
+
   // Origin / destination markers
   [[waypoints[0], true], [waypoints[waypoints.length - 1], false]].forEach(([wp, isOrigin]) => {
     if (!wp || !wp.icao) return;
@@ -1703,8 +1758,17 @@ function updateGlobe() {
       return;
     }
 
+    // If schedule has entries, only show scheduled aircraft (and watchlisted ones)
+    if (schedule.length > 0 && !isScheduledAircraft(ac.icao) && !passesWatchlist(ac)) {
+      if (aircraftEntities[ac.icao]) {
+        viewer.entities.remove(aircraftEntities[ac.icao]);
+        delete aircraftEntities[ac.icao];
+      }
+      return;
+    }
+
     // Filter: hide entities that don't pass watchlist, altitude, search, or conflict filter
-    if (!passesWatchlist(ac) || !passesAltFilter(ac) || !passesGlobeFilter(ac) || !passesConflictFilter(ac)) {
+    if (!passesAltFilter(ac) || !passesGlobeFilter(ac) || !passesConflictFilter(ac)) {
       if (aircraftEntities[ac.icao]) {
         viewer.entities.remove(aircraftEntities[ac.icao]);
         delete aircraftEntities[ac.icao];
@@ -1777,15 +1841,15 @@ function updateGlobe() {
         orientation: orientation,
         model: {
           uri: modelUri,
-          minimumPixelSize: isMobile() ? 80 : 120,
-          maximumScale: isMobile() ? 800 : 1200,
+          minimumPixelSize: isMobile() ? 120 : 120,
+          maximumScale: isMobile() ? 1200 : 1200,
           scale: 1.0,
           silhouetteColor: isOnboardAircraft(ac.icao) ? Cesium.Color.fromCssColorString('#DAA520').withAlpha(0.8) : isScheduledAircraft(ac.icao) ? Cesium.Color.fromCssColorString('#00ff88').withAlpha(0.6) : Cesium.Color.fromCssColorString('#00ff88').withAlpha(0.3),
           silhouetteSize: isOnboardAircraft(ac.icao) ? (isMobile() ? 2.0 : 3.0) : isScheduledAircraft(ac.icao) ? (isMobile() ? 1.5 : 2.0) : (isMobile() ? 0.5 : 1.0),
         },
         label: {
           text: buildLabelText(ac),
-          font: '13px JetBrains Mono',
+          font: isMobile() ? '15px JetBrains Mono' : '13px JetBrains Mono',
           fillColor: isOnboardAircraft(ac.icao) ? Cesium.Color.fromCssColorString('#FFD700') : isScheduledAircraft(ac.icao) ? Cesium.Color.fromCssColorString('#00ff88') : Cesium.Color.fromCssColorString('#e0e8f0'),
           outlineColor: Cesium.Color.BLACK,
           outlineWidth: 3,
@@ -1868,7 +1932,8 @@ function renderAircraftList() {
   const filter = (document.getElementById('searchBox').value || '').toUpperCase();
 
   const sorted = Object.values(aircraftData)
-    .filter(ac => ac.lat && ac.lon && !(ac.acType || '').toUpperCase().startsWith('B77') && (watchlistActive ? true : !ac.onGround) && passesWatchlist(ac) && passesAltFilter(ac) && passesConflictFilter(ac))
+    .filter(ac => ac.lat && ac.lon && (watchlistActive ? true : !ac.onGround) && passesAltFilter(ac) && passesConflictFilter(ac))
+    .filter(ac => schedule.length === 0 || isScheduledAircraft(ac.icao) || passesWatchlist(ac))
     .filter(ac =>
       !filter ||
       (ac.callsign && ac.callsign.toUpperCase().includes(filter)) ||
