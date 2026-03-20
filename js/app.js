@@ -310,9 +310,10 @@ function removeFromWatchlist(entry) {
 function toggleWatchlistActive() {
   watchlistActive = !watchlistActive;
   saveWatchlistActive();
-  document.getElementById('btnWatchlist').classList.toggle('active', watchlistActive);
-  document.getElementById('watchlistStatus').textContent = watchlistActive ? 'ACTIVE' : 'OFF';
-  document.getElementById('watchlistStatus').style.color = watchlistActive ? 'var(--accent)' : 'var(--text-dim)';
+  const wlBtn = document.getElementById('btnWatchlist');
+  if (wlBtn) wlBtn.classList.toggle('active', watchlistActive);
+  const wlSt = document.getElementById('watchlistStatus');
+  if (wlSt) { wlSt.textContent = watchlistActive ? 'ACTIVE' : 'OFF'; wlSt.style.color = watchlistActive ? 'var(--accent)' : 'var(--text-dim)'; }
   // Clear globe and rebuild
   Object.keys(aircraftEntities).forEach(icao => {
     viewer.entities.remove(aircraftEntities[icao]);
@@ -970,9 +971,13 @@ function tryAutoLogin() {
   const token = getEnv('CESIUM_ION_TOKEN');
   loadWatchlist();
   renderWatchlistPanel();
-  document.getElementById('btnWatchlist').classList.toggle('active', watchlistActive);
-  document.getElementById('watchlistStatus').textContent = watchlistActive ? 'ACTIVE' : 'OFF';
-  document.getElementById('watchlistStatus').style.color = watchlistActive ? 'var(--accent)' : 'var(--text-dim)';
+  const wlBtn = document.getElementById('btnWatchlist');
+  if (wlBtn) wlBtn.classList.toggle('active', watchlistActive);
+  const wlStatus = document.getElementById('watchlistStatus');
+  if (wlStatus) {
+    wlStatus.textContent = watchlistActive ? 'ACTIVE' : 'OFF';
+    wlStatus.style.color = watchlistActive ? 'var(--accent)' : 'var(--text-dim)';
+  }
   loadSchedule();
   renderSchedulePanel();
   // Schedule panel always visible on load
@@ -2309,7 +2314,8 @@ function toggleLabels() {
 
 function togglePaths() {
   showPaths = !showPaths;
-  document.getElementById('btnPaths').classList.toggle('active', showPaths);
+  const pathsBtn = document.getElementById('btnPaths');
+  if (pathsBtn) pathsBtn.classList.toggle('active', showPaths);
   if (!showPaths) {
     trailPositions = {};
     Object.values(aircraftEntities).forEach(e => {
