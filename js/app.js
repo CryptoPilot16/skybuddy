@@ -28,8 +28,6 @@ let globeFilter = ''; // search filter applied to globe entities too
 let watchlist = []; // persistent airline/callsign filter
 let watchlistActive = false;
 let activeWebcam = null; // currently shown webcam ICAO
-let showRoutes = false; // route projection toggle
-let routeMode = 'selected'; // 'selected' | 'all'
 let routeCache = {}; // callsign → route data from VRS API
 let schedule = []; // user's flight schedule
 let scheduleMatches = new Map(); // scheduleId → icao24
@@ -1343,68 +1341,11 @@ async function drawRouteForAircraft(ac, color) {
   });
 }
 
-// Toggle route visibility
-function toggleRoutes() {
-  showRoutes = !showRoutes;
-  document.getElementById('btnRoutes').classList.toggle('active', showRoutes);
-  if (showRoutes) {
-    drawAllRoutes();
-  } else {
-    clearRouteProjection();
-  }
-  notify('Routes ' + (showRoutes ? 'ON — ' + routeMode : 'OFF'));
-}
-
-// Cycle route mode: selected → all → off
-function cycleRouteMode() {
-  if (!showRoutes) {
-    showRoutes = true;
-    routeMode = 'selected';
-  } else if (routeMode === 'selected') {
-    routeMode = 'all';
-  } else {
-    showRoutes = false;
-  }
-  document.getElementById('btnRoutes').classList.toggle('active', showRoutes);
-  const modeLabel = !showRoutes ? 'OFF' : routeMode === 'selected' ? 'SELECTED' : 'ALL';
-  document.getElementById('btnRoutes').textContent = showRoutes ? `Routes: ${modeLabel}` : 'Routes';
-  if (showRoutes) {
-    drawAllRoutes();
-  } else {
-    clearRouteProjection();
-  }
-  notify('Routes: ' + modeLabel);
-}
-
-async function drawAllRoutes() {
-  clearRouteProjection();
-  if (!showRoutes) return;
-
-  if (routeMode === 'selected') {
-    if (selectedAc && aircraftData[selectedAc]) {
-      await drawRouteForAircraft(aircraftData[selectedAc]);
-    }
-  } else {
-    // Draw routes for all visible aircraft
-    const visible = Object.values(aircraftData).filter(ac =>
-      ac.lat && ac.lon && !ac.onGround && ac.callsign &&
-      passesWatchlist(ac) && passesAltFilter(ac)
-    );
-    // Limit to prevent overload
-    const toShow = visible.slice(0, 20);
-    const colors = [
-      'rgba(218,165,32,0.6)', 'rgba(0,255,136,0.5)', 'rgba(0,180,216,0.5)',
-      'rgba(255,107,53,0.5)', 'rgba(200,165,80,0.5)',
-    ];
-    for (let i = 0; i < toShow.length; i++) {
-      await drawRouteForAircraft(toShow[i], colors[i % colors.length]);
-    }
-  }
-}
+// Route is shown automatically when a plane is clicked (selected)
+// Schedule routes are always shown via updateScheduleRoutes()
 
 function drawRouteProjection(ac) {
-  if (!showRoutes || routeMode !== 'selected') return;
-  drawAllRoutes();
+  // No-op — routes drawn on select
 }
 
 function clearRouteProjection() {
@@ -1657,8 +1598,9 @@ function selectAircraft(icao) {
     duration: CONFIG.FLY_DURATION,
   });
 
-  // Draw route if routes are enabled
-  if (showRoutes) drawAllRoutes();
+  // Draw route for selected aircraft
+  clearRouteProjection();
+  drawRouteForAircraft(ac);
 
   // On mobile, close side panel so 3D view is visible
   if (isMobile()) {
