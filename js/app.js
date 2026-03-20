@@ -31,7 +31,7 @@ const CONFIG = {
   REFRESH_INTERVAL: 10000,       // ms between data fetches
   MAX_LIST_ITEMS: 200,           // max aircraft in side panel list
   MAX_TRAIL_POINTS: 150,         // max trail coordinate triples
-  DEFAULT_CENTER: [-9.14, 38.74], // Lisbon
+  DEFAULT_CENTER: [-83.53, 42.24], // Willow Run / Kalitta HQ
   DEFAULT_ALTITUDE: 8000000,
   ZOOM_BOUNDING_LAT: 40,        // skip bounding box if view > 40° lat
   FLY_DURATION: 2,              // camera fly-to seconds
@@ -371,7 +371,7 @@ function handleKeyboard(e) {
 
 // ─── Data Sources ───
 function buildOpenSkyUrl(rect) {
-  let url = 'https://opensky-network.org/api/states/all';
+  let url = '/api/opensky/api/states/all';
   if (rect) {
     const west = Cesium.Math.toDegrees(rect.west).toFixed(2);
     const south = Cesium.Math.toDegrees(rect.south).toFixed(2);
@@ -386,15 +386,15 @@ function buildOpenSkyUrl(rect) {
 
 function buildAdsbLolUrl(rect) {
   // No rect = fetch globally (watchlist mode)
-  if (!rect) return 'https://api.adsb.lol/v2/ladd';
+  if (!rect) return '/api/adsb/v2/ladd';
   const west = Cesium.Math.toDegrees(rect.west).toFixed(2);
   const south = Cesium.Math.toDegrees(rect.south).toFixed(2);
   const east = Cesium.Math.toDegrees(rect.east).toFixed(2);
   const north = Cesium.Math.toDegrees(rect.north).toFixed(2);
   if ((north - south) < CONFIG.ZOOM_BOUNDING_LAT) {
-    return `https://api.adsb.lol/v2/lat/${((+north + +south) / 2).toFixed(4)}/lon/${((+east + +west) / 2).toFixed(4)}/dist/250`;
+    return `/api/adsb/v2/lat/${((+north + +south) / 2).toFixed(4)}/lon/${((+east + +west) / 2).toFixed(4)}/dist/250`;
   }
-  return 'https://api.adsb.lol/v2/ladd';
+  return '/api/adsb/v2/ladd';
 }
 
 function parseOpenSkyData(data) {
@@ -467,7 +467,7 @@ async function fetchAircraft() {
       const allResults = {};
       const fetches = searchPoints.map(async (pt) => {
         try {
-          const resp = await fetch(`https://api.adsb.lol/v2/lat/${pt.lat}/lon/${pt.lon}/dist/5000`);
+          const resp = await fetch(`/api/adsb/v2/lat/${pt.lat}/lon/${pt.lon}/dist/5000`);
           if (!resp.ok) return;
           const data = await resp.json();
           const parsed = parseAdsbLolData(data);
@@ -641,11 +641,11 @@ function updateGlobe() {
         orientation: orientation,
         model: {
           uri: modelUri,
-          minimumPixelSize: 32,
-          maximumScale: 50000,
+          minimumPixelSize: 48,
+          maximumScale: 200,
           scale: 1.0,
-          silhouetteColor: Cesium.Color.fromCssColorString('#00ff88').withAlpha(0.4),
-          silhouetteSize: 1.5,
+          silhouetteColor: Cesium.Color.fromCssColorString('#00ff88').withAlpha(0.5),
+          silhouetteSize: 2.0,
         },
         label: {
           text: ac.callsign || ac.icao,
@@ -737,12 +737,20 @@ function selectAircraft(icao) {
   btn.textContent = trackingAc === icao ? '■ STOP TRACKING' : '◎ TRACK AIRCRAFT';
   btn.classList.toggle('tracking', trackingAc === icao);
 
+  // Fly to aircraft from behind and above
   const alt = ac.alt || ac.geoAlt || 5000;
+  const hdg = ac.heading || 0;
+  const hdgRad = Cesium.Math.toRadians(hdg);
+  // Position camera ~2km behind the aircraft
+  const offsetDist = 0.02; // ~2km in degrees
+  const camLat = ac.lat - Math.cos(hdgRad) * offsetDist;
+  const camLon = ac.lon - Math.sin(hdgRad) * offsetDist;
+
   viewer.camera.flyTo({
-    destination: Cesium.Cartesian3.fromDegrees(ac.lon, ac.lat, alt + 2000),
+    destination: Cesium.Cartesian3.fromDegrees(camLon, camLat, alt + 500),
     orientation: {
-      heading: Cesium.Math.toRadians(ac.heading || 0),
-      pitch: Cesium.Math.toRadians(-25),
+      heading: Cesium.Math.toRadians(hdg),
+      pitch: Cesium.Math.toRadians(-15),
       roll: 0,
     },
     duration: CONFIG.FLY_DURATION,
