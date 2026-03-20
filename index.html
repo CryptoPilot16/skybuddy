@@ -215,33 +215,6 @@
 <div class="setup-panel" id="setupPanel" style="display:none;">
 </div>
 
-<!-- Settings Panel -->
-<div class="settings-panel" id="settingsPanel">
-  <div class="wl-header">
-    <span class="wl-title">MY SCHEDULE</span>
-    <button class="panel-close-btn" onclick="toggleSettingsPanel()">✕</button>
-  </div>
-  <div class="sched-add-row">
-    <input type="text" class="sched-input" id="settingsSchedFlight" placeholder="Callsign (CKS401)">
-    <input type="text" class="sched-input sched-input-sm" id="settingsSchedDep" placeholder="DEP">
-    <input type="text" class="sched-input sched-input-sm" id="settingsSchedArr" placeholder="ARR">
-  </div>
-  <div class="sched-add-row">
-    <input type="datetime-local" class="sched-input sched-input-dt" id="settingsSchedTime">
-    <label class="sched-onboard-label"><input type="checkbox" id="settingsSchedOnboard"> I'm onboard</label>
-    <button class="wl-add-btn" onclick="addScheduleFromSettings()">+</button>
-  </div>
-  <div class="sched-import-row">
-    <input type="file" id="settingsSchedScreenshot" accept="image/*" style="display:none" onchange="importScheduleScreenshot(this)">
-    <button class="wl-toggle-btn sched-import-btn" onclick="document.getElementById('settingsSchedScreenshot').click()">Import from Image</button>
-  </div>
-  <div class="sched-import-status" id="schedImportStatus" style="display:none;"></div>
-  <div class="sched-items" id="settingsScheduleItems"></div>
-  <div class="setup-note" style="margin-top:12px; text-align:center;">
-    Shortcuts: <strong>L</strong> labels · <strong>T</strong> trails · <strong>A</strong> airports · <strong>C</strong> conflicts · <strong>R</strong> refresh · <strong>Shift+R</strong> routes · <strong>H</strong> home · <strong>Esc</strong> close
-  </div>
-  <div class="setup-footer">SKYBUDDY v1.1.0</div>
-</div>
 
 <!-- Loading Overlay -->
 <div class="loading-overlay" id="loadingOverlay" style="display:none;">

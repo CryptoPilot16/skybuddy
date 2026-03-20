@@ -1012,12 +1012,7 @@ function tryAutoLogin() {
 
 // ─── Settings Panel (now schedule-focused) ───
 function toggleSettingsPanel() {
-  document.getElementById('watchlistPanel').classList.remove('visible');
-  const panel = document.getElementById('settingsPanel');
-  panel.classList.toggle('visible');
-  if (panel.classList.contains('visible')) {
-    renderSettingsSchedule();
-  }
+  // Settings panel removed — no-op
 }
 
 function renderSettingsSchedule() {
