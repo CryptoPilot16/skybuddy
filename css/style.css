@@ -1100,180 +1100,134 @@ body {
 
 /* ─── Responsive: Mobile ─── */
 @media (max-width: 480px) {
-  /* Top bar: fixed, ultra-compact */
+  /* PREVENT page scroll — everything is fixed/absolute */
+  body, html { overflow: hidden; height: 100%; }
+
+  /* ── Top bar: 28px fixed ── */
   .top-bar { position: fixed; top: 0; left: 0; right: 0; height: 28px; padding: 0 3px; z-index: 90; }
   .logo { font-size: 8px; letter-spacing: 1px; gap: 2px; white-space: nowrap; }
-  .logo .sub { display: none; }
-  .logo .sep { display: none; }
-  .status-cluster { display: none; }
-  .compass-btn { display: none; }
+  .logo .sub, .logo .sep { display: none; }
+  .status-cluster, .compass-btn { display: none; }
   .toggle-panel-btn { display: none !important; }
-  /* Top controls: tiny buttons */
+  .bottom-bar { display: none; }
   .top-controls { gap: 2px; flex-shrink: 0; }
   .top-controls .ctrl-btn { padding: 2px 6px; font-size: 8px; min-height: 22px; white-space: nowrap; }
 
-  /* Side panel: collapsed left strip on mobile, expands on OTHERS toggle */
-  .side-panel {
-    width: 55%; left: 0;
-    top: 28px;
-    bottom: 160px;
-    z-index: 70;
-    border: none;
-    border-right: 1px solid var(--border);
-    transition: transform 0.2s ease;
-  }
-  .side-panel.hidden { transform: translateX(-100%); }
-  .search-box {
-    font-size: 16px; padding: 12px;
-    -webkit-text-size-adjust: 100%;
-  }
-  .ac-item {
-    padding: 10px 10px;
-    font-size: 12px;
-    min-height: 48px;
-    align-items: center;
-  }
-  .ac-callsign { font-size: 14px; }
-  .ac-alt { font-size: 12px; }
-  .ac-origin { font-size: 10px; }
-  .ac-speed { font-size: 10px; }
-
-  /* Detail panel: bottom sheet */
-  .detail-panel {
-    position: fixed;
-    top: auto;
-    right: 0; left: 0; bottom: 0;
-    width: 100%;
-    max-height: 45vh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    border: none;
-    border-top: 1px solid var(--border);
-    border-radius: 12px 12px 0 0;
-    z-index: 80;
-    padding: 12px 12px 20px;
-    padding-bottom: max(20px, env(safe-area-inset-bottom));
-    transition: max-height 0.25s ease;
-  }
-  .detail-panel::before {
-    content: '';
-    display: block;
-    width: 36px; height: 4px;
-    background: var(--text-dim);
-    border-radius: 2px;
-    margin: 0 auto 8px;
-    cursor: pointer;
-  }
-  .detail-panel.minimized {
-    max-height: 56px;
-    overflow: hidden;
-    padding: 10px 12px;
-  }
-  .detail-panel.minimized::before { margin-bottom: 6px; }
-  .detail-panel.minimized .detail-country,
-  .detail-panel.minimized .detail-grid,
-  .detail-panel.minimized .detail-actions { display: none; }
-  .detail-panel.minimized .detail-callsign { font-size: 14px; margin-bottom: 0; }
-  .detail-panel.minimized .detail-minimize { transform: rotate(180deg); }
-  .detail-minimize {
-    display: block;
-    position: absolute;
-    top: 10px; right: 44px;
-    background: none; border: none;
-    color: var(--text-dim);
-    font-size: 18px;
-    cursor: pointer;
-    font-family: var(--mono);
-    padding: 4px 8px;
-    line-height: 1;
-  }
-  .detail-minimize:hover { color: var(--accent); }
-  .detail-callsign { font-size: 16px; }
-  .detail-grid { gap: 8px; }
-  .detail-field .val { font-size: 13px; }
-  .detail-field label { font-size: 7px; }
-  .detail-actions {
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-  .detail-actions .btn-track {
-    min-height: 44px;
-    font-size: 11px;
-    flex: 1 1 45%;
-  }
-  .detail-close {
-    top: 10px; right: 10px;
-    font-size: 18px;
-    padding: 6px 10px;
-    min-width: 36px; min-height: 36px;
-  }
-
-  /* Top controls inline on mobile — bigger touch targets */
-  .top-controls {
-    gap: 3px;
-  }
-  .top-controls .ctrl-btn {
-    padding: 4px 10px;
-    font-size: 10px;
-    min-height: 32px;
-  }
-  .bottom-bar { display: none; }
-
-  /* Toggle button: larger for mobile */
-  .toggle-panel-btn {
-    top: 40px;
-    min-width: 44px; min-height: 44px;
-    font-size: 18px;
-    display: flex; align-items: center; justify-content: center;
-  }
-
-  /* Minimap: fixed full-width band at bottom */
+  /* ── Minimap: fixed bottom band 140px ── */
   .minimap-container {
     display: block;
-    position: fixed;
-    width: 100%; height: 160px;
+    position: fixed !important;
+    width: 100%; height: 140px;
     bottom: 0; left: 0;
     z-index: 50;
     opacity: 0.95;
     border-top: 1px solid var(--border);
   }
   .minimap-header { font-size: 7px; padding: 2px 6px; }
-  .minimap-canvas { image-rendering: auto; }
 
-  /* Watchlist panel: full width bottom sheet */
+  /* ── Schedule: fixed above minimap, scrolls internally ── */
+  .schedule-panel {
+    position: fixed !important;
+    width: 100%; right: 0; left: 0;
+    top: auto !important; bottom: 140px;
+    max-height: 35vh;
+    overflow-y: auto;
+    border: none; border-top: 1px solid var(--accent);
+    z-index: 55;
+    -webkit-overflow-scrolling: touch;
+    cursor: default;
+  }
+  .schedule-panel .sched-header { cursor: default; position: sticky; top: 0; z-index: 1; background: var(--panel); }
+  .schedule-panel .sched-add-row { display: none !important; }
+  .sched-items { max-height: none; overflow-y: auto; flex: 1; }
+  .sched-import-btn { min-height: 44px !important; font-size: 11px !important; }
+  .sched-item { padding: 10px; }
+  .sched-flight { font-size: 15px; }
+  .sched-route { font-size: 12px; }
+  .sched-time { font-size: 10px; }
+  .sched-remove { font-size: 12px; padding: 4px 8px; min-width: 32px; }
+  .sched-locate { font-size: 11px; padding: 6px 12px; min-height: 36px; }
+
+  /* ── Side panel: left drawer, toggle with OTHERS ── */
+  .side-panel {
+    position: fixed;
+    width: 60%; left: 0;
+    top: 28px; bottom: 140px;
+    z-index: 70;
+    border: none;
+    border-right: 1px solid var(--border);
+    transition: transform 0.2s ease;
+    overflow-y: auto;
+  }
+  .side-panel.hidden { transform: translateX(-100%); }
+  .search-box { font-size: 14px; padding: 10px; -webkit-text-size-adjust: 100%; }
+  .ac-item { padding: 8px; font-size: 11px; min-height: 40px; }
+  .ac-callsign { font-size: 13px; }
+  .ac-alt { font-size: 11px; }
+  .ac-origin, .ac-speed { font-size: 9px; }
+
+  /* ── Watchlist panel: left drawer, toggle with WATCHLIST ── */
   .watchlist-panel {
-    width: 55%; right: auto; left: 0;
+    position: fixed;
+    width: 60%; right: auto; left: 0;
     top: 28px;
-    max-height: 50vh;
+    max-height: calc(100vh - 168px);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     border: none;
     border-right: 1px solid var(--border);
     z-index: 75;
   }
-  .wl-input {
-    font-size: 16px; padding: 12px 10px;
-    -webkit-text-size-adjust: 100%;
-  }
-  .wl-add-btn { min-width: 48px; min-height: 48px; font-size: 20px; }
-  .wl-item { min-height: 44px; font-size: 14px; padding: 8px 10px; }
-  .wl-remove { font-size: 14px; min-width: 32px; min-height: 32px; padding: 4px; }
-  .wl-toggle-btn { min-height: 44px; font-size: 11px; padding: 10px; }
+  .wl-input { font-size: 14px; padding: 10px; -webkit-text-size-adjust: 100%; }
+  .wl-add-btn { min-width: 44px; min-height: 44px; font-size: 18px; }
+  .wl-item { min-height: 40px; font-size: 13px; padding: 6px 10px; }
+  .wl-remove { font-size: 13px; min-width: 28px; min-height: 28px; padding: 4px; }
+  .wl-toggle-btn { min-height: 40px; font-size: 11px; padding: 8px; }
   .wl-hint { font-size: 9px; padding: 4px 10px 8px; }
 
-  /* Alt filter: full width */
-  .alt-filter {
-    width: calc(100% - 8px);
-    left: 4px;
-    transform: none;
-    bottom: 8px;
+  /* ── Detail panel: bottom sheet above minimap ── */
+  .detail-panel {
+    position: fixed;
+    top: auto; right: 0; left: 0; bottom: 140px;
+    width: 100%;
+    max-height: 40vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    border: none;
+    border-top: 1px solid var(--border);
+    border-radius: 12px 12px 0 0;
+    z-index: 80;
+    padding: 12px 12px 16px;
   }
-  .alt-filter-row input[type="range"]::-webkit-slider-thumb {
-    width: 24px; height: 24px;
+  .detail-panel::before {
+    content: ''; display: block;
+    width: 36px; height: 4px;
+    background: var(--text-dim); border-radius: 2px;
+    margin: 0 auto 8px; cursor: pointer;
   }
-  .alt-filter-row input[type="range"]::-moz-range-thumb {
-    width: 24px; height: 24px;
+  .detail-panel.minimized { max-height: 56px; overflow: hidden; padding: 10px 12px; }
+  .detail-panel.minimized::before { margin-bottom: 6px; }
+  .detail-panel.minimized .detail-country,
+  .detail-panel.minimized .detail-grid,
+  .detail-panel.minimized .detail-actions { display: none; }
+  .detail-panel.minimized .detail-callsign { font-size: 14px; margin-bottom: 0; }
+  .detail-minimize {
+    display: block; position: absolute; top: 10px; right: 44px;
+    background: none; border: none; color: var(--text-dim);
+    font-size: 18px; cursor: pointer; font-family: var(--mono); padding: 4px 8px;
   }
+  .detail-callsign { font-size: 16px; }
+  .detail-grid { gap: 8px; }
+  .detail-field .val { font-size: 13px; }
+  .detail-field label { font-size: 7px; }
+  .detail-actions { flex-wrap: wrap; gap: 6px; }
+  .detail-actions .btn-track { min-height: 44px; font-size: 11px; flex: 1 1 45%; }
+  .detail-close { top: 10px; right: 10px; font-size: 18px; padding: 6px 10px; min-width: 36px; min-height: 36px; }
+
+  /* ── Alt filter ── */
+  .alt-filter { width: calc(100% - 8px); left: 4px; transform: none; bottom: 148px; }
+  .alt-filter-row input[type="range"]::-webkit-slider-thumb { width: 24px; height: 24px; }
+  .alt-filter-row input[type="range"]::-moz-range-thumb { width: 24px; height: 24px; }
   .alt-filter-row input[type="range"] { height: 4px; }
   .alt-filter-reset { min-height: 40px; font-size: 10px; }
 
@@ -1337,29 +1291,7 @@ body {
   .webcam-title { font-size: 11px; }
   .webcam-btn { min-height: 32px; min-width: 32px; font-size: 12px; padding: 4px 8px; }
 
-  /* Schedule panel: fixed above minimap, scrollable */
-  .schedule-panel {
-    position: fixed;
-    width: 100%; right: 0; left: 0;
-    top: auto; bottom: 160px;
-    max-height: 40vh;
-    overflow-y: auto;
-    border: none; border-top: 1px solid var(--accent);
-    z-index: 55;
-    -webkit-overflow-scrolling: touch;
-    cursor: default;
-  }
-  .schedule-panel .sched-header { cursor: default; position: sticky; top: 0; z-index: 1; background: var(--panel); }
-  .schedule-panel .sched-add-row { display: none !important; }
-  .sched-items { max-height: none; overflow-y: auto; flex: 1; }
-  .sched-import-btn { min-height: 44px !important; font-size: 11px !important; }
-  .sched-item { padding: 10px; }
-  .sched-flight { font-size: 15px; }
-  .sched-route { font-size: 12px; }
-  .sched-time { font-size: 10px; }
-  .sched-remove { font-size: 12px; padding: 4px 8px; min-width: 32px; }
-  .sched-locate { font-size: 11px; padding: 6px 12px; min-height: 36px; }
-
+  /* (schedule panel rules already defined above) */
   /* Flight banner: prominent strip below top bar on mobile */
   .flight-banner {
     top: 28px; left: 0; right: 0;

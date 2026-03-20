@@ -36,7 +36,7 @@ let showConflicts = true; // conflict zone overlay toggle
 let conflictDataSource = null; // Cesium GeoJsonDataSource for conflict zones
 let conflictFilterActive = false; // filter aircraft from conflict countries
 let hexdbCache = {}; // icao24 → hexdb.io aircraft info (registration, owner, etc.)
-let showOtherPlanes = true; // show non-scheduled aircraft
+let showOtherPlanes = false; // only show watchlist + scheduled aircraft
 
 // ─── Config ───
 const CONFIG = {
@@ -950,16 +950,9 @@ function initApp() {
     document.getElementById('btnConflicts').classList.add('active');
     document.getElementById('conflictLegend').style.display = 'block';
 
-    if (isMobile()) {
-      // Mobile: side panel and watchlist start hidden, only globe + minimap + schedule
-      document.getElementById('sidePanel').classList.add('hidden');
-      document.getElementById('toggleBtn').style.display = 'none';
-    } else {
-      // Desktop: all panels visible
-      document.getElementById('sidePanel').classList.remove('hidden');
-      document.getElementById('toggleBtn').style.display = 'none';
-      document.getElementById('btnOthers').classList.add('active');
-    }
+    // Side panel starts hidden — only watchlist/scheduled aircraft shown by default
+    document.getElementById('sidePanel').classList.add('hidden');
+    document.getElementById('toggleBtn').style.display = isMobile() ? 'none' : 'block';
 
     fetchAircraft().then(() => {
       const overlay = document.getElementById('loadingOverlay');
