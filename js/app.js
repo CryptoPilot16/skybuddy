@@ -1328,7 +1328,7 @@ async function drawRouteForAircraft(ac, color) {
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
       },
       label: {
-        text: `${wp.icao}  ${label}\n${wp.name || ''}`,
+        text: `${wp.icao} ${label}`,
         font: '10px JetBrains Mono',
         fillColor: Cesium.Color.fromCssColorString(markerColor),
         outlineColor: Cesium.Color.BLACK,
@@ -2149,6 +2149,10 @@ function passesConflictFilter(ac) {
   return isConflictCountry(ac.country);
 }
 
+let conflictLabelEntities = []; // separate label entities for conflict/country names
+let conflictHoverHandler = null;
+let _hoveredCountryEntity = null; // track currently hovered country for label toggle
+
 async function drawConflicts() {
   clearConflicts();
   try {
@@ -2157,34 +2161,143 @@ async function drawConflicts() {
 
     conflictDataSource = new Cesium.GeoJsonDataSource('conflicts');
     await conflictDataSource.load(geojsonUrl, {
-      stroke: Cesium.Color.RED.withAlpha(0.6),
-      fill: Cesium.Color.RED.withAlpha(0.15),
-      strokeWidth: 1.5,
+      stroke: Cesium.Color.TRANSPARENT,
+      fill: Cesium.Color.TRANSPARENT,
+      strokeWidth: 0,
     });
 
-    // Remove non-conflict countries
     const entities = conflictDataSource.entities.values.slice();
     for (const entity of entities) {
       const name = entity.properties && entity.properties.name ?
         entity.properties.name.getValue() : '';
-      if (!conflictNames.has(name)) {
-        conflictDataSource.entities.remove(entity);
-      } else {
-        // Vary intensity by severity
-        const conflict = CONFLICT_COUNTRIES.find(c => c.name === name);
-        if (conflict && entity.polygon) {
-          const alpha = conflict.severity === 'war' ? 0.25 :
-                        conflict.severity === 'high' ? 0.18 : 0.12;
-          entity.polygon.material = Cesium.Color.RED.withAlpha(alpha);
-          entity.polygon.outline = true;
-          entity.polygon.outlineColor = Cesium.Color.RED.withAlpha(0.5);
-          entity.polygon.height = 0;
-          entity.polygon.classificationType = Cesium.ClassificationType.BOTH;
-        }
+      const conflict = CONFLICT_COUNTRIES.find(c => c.name === name);
+
+      // Tag every entity with its country name for hover/click
+      entity._countryName = name;
+      entity._isConflict = !!conflict;
+
+      if (conflict && entity.polygon) {
+        // Conflict country — red overlay with severity-based alpha
+        const alpha = conflict.severity === 'war' ? 0.25 :
+                      conflict.severity === 'high' ? 0.18 : 0.12;
+        entity.polygon.material = Cesium.Color.RED.withAlpha(alpha);
+        entity.polygon.outline = true;
+        entity.polygon.outlineColor = Cesium.Color.RED.withAlpha(0.5);
+        entity.polygon.height = 0;
+        entity._conflictSeverity = conflict.severity;
+      } else if (entity.polygon) {
+        // Non-conflict country — invisible fill, no outline (clickable for name)
+        entity.polygon.material = Cesium.Color.TRANSPARENT;
+        entity.polygon.outline = false;
+        entity.polygon.height = 0;
       }
     }
 
+    // Add conflict country center labels (hidden until hover/click)
+    CONFLICT_COUNTRIES.forEach(c => {
+      const severityTag = c.severity === 'war' ? 'WAR' :
+                          c.severity === 'high' ? 'HIGH' : 'MED';
+      const labelEntity = viewer.entities.add({
+        position: Cesium.Cartesian3.fromDegrees(c.lon, c.lat, 500),
+        label: {
+          text: `⚠ ${c.name.toUpperCase()}\n${severityTag}`,
+          font: '11px JetBrains Mono',
+          fillColor: Cesium.Color.fromCssColorString('rgba(255, 80, 80, 0.95)'),
+          outlineColor: Cesium.Color.BLACK,
+          outlineWidth: 3,
+          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+          pixelOffset: new Cesium.Cartesian2(0, -18),
+          scaleByDistance: new Cesium.NearFarScalar(1e5, 1.0, 1.5e7, 0.4),
+          translucencyByDistance: new Cesium.NearFarScalar(1e5, 1.0, 2e7, 0.0),
+          disableDepthTestDistance: 0, // respect globe occlusion — hidden on far side
+          show: false,
+          heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+        },
+        _conflictLabel: true,
+        _countryName: c.name,
+      });
+      conflictLabelEntities.push(labelEntity);
+    });
+
     viewer.dataSources.add(conflictDataSource);
+
+    // Hover + click handler for country names
+    if (!conflictHoverHandler) {
+      conflictHoverHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+
+      // Hover — show label for country under cursor
+      conflictHoverHandler.setInputAction(function (movement) {
+        // Hide previous hover label
+        if (_hoveredCountryEntity && !_hoveredCountryEntity._clicked) {
+          _hoveredCountryEntity.label.show = false;
+          _hoveredCountryEntity = null;
+        }
+
+        const picked = viewer.scene.pick(movement.endPosition);
+        if (!Cesium.defined(picked) || !picked.id) return;
+
+        const entity = picked.id;
+        const countryName = entity._countryName;
+        if (!countryName) return;
+
+        // Find or create a label for this country
+        let labelEnt = conflictLabelEntities.find(e => e._countryName === countryName);
+        if (!labelEnt) {
+          // Non-conflict country — create a temporary label at pick position
+          const cartesian = viewer.scene.pickPosition(movement.endPosition);
+          if (!cartesian) return;
+          const carto = Cesium.Cartographic.fromCartesian(cartesian);
+          labelEnt = viewer.entities.add({
+            position: Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, 500),
+            label: {
+              text: countryName.toUpperCase(),
+              font: '11px JetBrains Mono',
+              fillColor: Cesium.Color.fromCssColorString('rgba(200, 214, 229, 0.9)'),
+              outlineColor: Cesium.Color.BLACK,
+              outlineWidth: 3,
+              style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+              pixelOffset: new Cesium.Cartesian2(0, -18),
+              scaleByDistance: new Cesium.NearFarScalar(1e5, 1.0, 1.5e7, 0.4),
+              translucencyByDistance: new Cesium.NearFarScalar(1e5, 1.0, 2e7, 0.0),
+              disableDepthTestDistance: 0,
+              show: false,
+              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+            },
+            _conflictLabel: true,
+            _countryName: countryName,
+            _temporary: true,
+          });
+          conflictLabelEntities.push(labelEnt);
+        }
+
+        labelEnt.label.show = true;
+        _hoveredCountryEntity = labelEnt;
+      }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+
+      // Click — toggle sticky label
+      conflictHoverHandler.setInputAction(function (click) {
+        const picked = viewer.scene.pick(click.position);
+        if (!Cesium.defined(picked) || !picked.id) return;
+
+        const entity = picked.id;
+        const countryName = entity._countryName;
+        if (!countryName) return;
+
+        const labelEnt = conflictLabelEntities.find(e => e._countryName === countryName);
+        if (labelEnt) {
+          const isShown = labelEnt.label.show.getValue ? labelEnt.label.show.getValue() : labelEnt.label.show;
+          const wasClicked = labelEnt._clicked;
+          // Toggle: if already clicked-sticky, hide it; otherwise make it sticky
+          if (wasClicked) {
+            labelEnt.label.show = false;
+            labelEnt._clicked = false;
+          } else {
+            labelEnt.label.show = true;
+            labelEnt._clicked = true;
+          }
+        }
+      }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+    }
   } catch (e) {
     console.warn('Failed to load conflict zones:', e);
     notify('Failed to load conflict data', 'error');
@@ -2195,6 +2308,15 @@ function clearConflicts() {
   if (conflictDataSource) {
     viewer.dataSources.remove(conflictDataSource, true);
     conflictDataSource = null;
+  }
+  // Remove label entities
+  conflictLabelEntities.forEach(e => viewer.entities.remove(e));
+  conflictLabelEntities = [];
+  _hoveredCountryEntity = null;
+  // Destroy handler
+  if (conflictHoverHandler) {
+    conflictHoverHandler.destroy();
+    conflictHoverHandler = null;
   }
 }
 
