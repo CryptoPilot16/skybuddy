@@ -945,15 +945,21 @@ function initApp() {
     document.getElementById('loadingText').textContent = 'Fetching aircraft...';
     stats.sessionStart = new Date();
 
-    // All panels visible by default
-    document.getElementById('sidePanel').classList.remove('hidden');
-    document.getElementById('toggleBtn').style.display = 'none';
-
-    // Set default button states
-    document.getElementById('btnOthers').classList.add('active');
+    // Default button states
     document.getElementById('btnLabels').classList.add('active');
     document.getElementById('btnConflicts').classList.add('active');
     document.getElementById('conflictLegend').style.display = 'block';
+
+    if (isMobile()) {
+      // Mobile: side panel and watchlist start hidden, only globe + minimap + schedule
+      document.getElementById('sidePanel').classList.add('hidden');
+      document.getElementById('toggleBtn').style.display = 'none';
+    } else {
+      // Desktop: all panels visible
+      document.getElementById('sidePanel').classList.remove('hidden');
+      document.getElementById('toggleBtn').style.display = 'none';
+      document.getElementById('btnOthers').classList.add('active');
+    }
 
     fetchAircraft().then(() => {
       const overlay = document.getElementById('loadingOverlay');
