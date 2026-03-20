@@ -1262,23 +1262,14 @@ function cycleDataSource() {
 
 // ─── Data Fetching ───
 async function fetchAircraft() {
-  // When watchlist is active, use wide-radius search to find all watched aircraft worldwide
+  // When watchlist is active, use global search to find all watched aircraft
   if (watchlistActive && watchlist.length > 0) {
     try {
-      // Search from multiple points with large radius for global coverage
-      const searchPoints = [
-        { lat: 45, lon: -100 },   // North America
-        { lat: 50, lon: 10 },     // Europe
-        { lat: 25, lon: 80 },     // Asia / Middle East
-        { lat: -10, lon: 140 },   // SE Asia / Oceania
-        { lat: 35, lon: 140 },    // East Asia / Pacific
-      ];
       const allResults = {};
-      // Query both ADSB.lol and airplanes.live for maximum coverage
-      const fetches = searchPoints.flatMap((pt) => [
-        fetch(`/api/adsb/v2/lat/${pt.lat}/lon/${pt.lon}/dist/12000`).catch(() => null),
-        fetch(`https://api.airplanes.live/v2/point/${pt.lat}/${pt.lon}/250`).catch(() => null),
-      ]);
+      // Single global call — ADSB.lol with max radius covers most of the globe
+      const fetches = [
+        fetch(`/api/adsb/v2/lat/30/lon/-30/dist/25000`).catch(() => null),
+      ];
       const responses = await Promise.all(fetches);
       for (const resp of responses) {
         try {
