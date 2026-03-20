@@ -2066,9 +2066,28 @@ function toggleConflicts() {
   showConflicts = !showConflicts;
   document.getElementById('btnConflicts').classList.toggle('active', showConflicts);
   document.getElementById('conflictLegend').style.display = showConflicts ? 'block' : 'none';
-  if (showConflicts) drawConflicts();
-  else clearConflicts();
-  notify('Conflict zones ' + (showConflicts ? 'on' : 'off'));
+  // Auto-enable war filter when conflicts are shown
+  conflictFilterActive = showConflicts;
+  if (showConflicts) {
+    drawConflicts();
+    // Rebuild globe with conflict filter active
+    Object.keys(aircraftEntities).forEach(icao => {
+      viewer.entities.remove(aircraftEntities[icao]);
+      delete aircraftEntities[icao];
+    });
+    updateGlobe();
+    renderAircraftList();
+  } else {
+    clearConflicts();
+    // Rebuild globe without conflict filter
+    Object.keys(aircraftEntities).forEach(icao => {
+      viewer.entities.remove(aircraftEntities[icao]);
+      delete aircraftEntities[icao];
+    });
+    updateGlobe();
+    renderAircraftList();
+  }
+  notify('Conflict zones ' + (showConflicts ? 'ON — war filter active' : 'OFF'));
 }
 
 function toggleConflictFilter() {
@@ -2133,25 +2152,29 @@ async function drawConflicts() {
       }
     }
 
-    // Add conflict country center labels (hidden until hover/click)
+    // Add conflict country center labels — always visible
     CONFLICT_COUNTRIES.forEach(c => {
       const severityTag = c.severity === 'war' ? 'WAR' :
                           c.severity === 'high' ? 'HIGH' : 'MED';
+      const sevColor = c.severity === 'war' ? 'rgba(255, 50, 50, 0.95)' :
+                       c.severity === 'high' ? 'rgba(255, 140, 50, 0.95)' : 'rgba(255, 200, 80, 0.9)';
       const labelEntity = viewer.entities.add({
         position: Cesium.Cartesian3.fromDegrees(c.lon, c.lat, 500),
         label: {
-          text: `⚠ ${c.name.toUpperCase()}\n${severityTag}`,
+          text: `${c.name.toUpperCase()}  ${severityTag}`,
           font: '11px JetBrains Mono',
-          fillColor: Cesium.Color.fromCssColorString('rgba(255, 80, 80, 0.95)'),
+          fillColor: Cesium.Color.fromCssColorString(sevColor),
           outlineColor: Cesium.Color.BLACK,
           outlineWidth: 3,
           style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-          pixelOffset: new Cesium.Cartesian2(0, -18),
-          scaleByDistance: new Cesium.NearFarScalar(1e5, 1.0, 1.5e7, 0.4),
-          translucencyByDistance: new Cesium.NearFarScalar(1e5, 1.0, 2e7, 0.0),
-          disableDepthTestDistance: 0, // respect globe occlusion — hidden on far side
-          show: false,
-          heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+          pixelOffset: new Cesium.Cartesian2(0, 0),
+          scaleByDistance: new Cesium.NearFarScalar(1e5, 1.2, 1.5e7, 0.35),
+          translucencyByDistance: new Cesium.NearFarScalar(1e5, 1.0, 2e7, 0.3),
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          show: true,
+          backgroundColor: Cesium.Color.fromCssColorString('rgba(0,0,0,0.6)'),
+          showBackground: true,
+          backgroundPadding: new Cesium.Cartesian2(6, 3),
         },
         _conflictLabel: true,
         _countryName: c.name,
