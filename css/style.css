@@ -1113,11 +1113,11 @@ body {
   .top-controls { gap: 2px; flex-shrink: 0; }
   .top-controls .ctrl-btn { padding: 2px 6px; font-size: 8px; min-height: 22px; white-space: nowrap; }
 
-  /* ── Minimap: fixed bottom band 140px ── */
+  /* ── Minimap: fixed bottom band 200px ── */
   .minimap-container {
     display: block;
     position: fixed !important;
-    width: 100%; height: 140px;
+    width: 100%; height: 200px;
     bottom: 0; left: 0;
     z-index: 50;
     opacity: 0.95;
@@ -1129,7 +1129,7 @@ body {
   .schedule-panel {
     position: fixed !important;
     width: 100%; right: 0; left: 0;
-    top: auto !important; bottom: 140px;
+    top: auto !important; bottom: 200px;
     max-height: 35vh;
     overflow-y: auto;
     border: none; border-top: 1px solid var(--accent);
@@ -1152,7 +1152,7 @@ body {
   .side-panel {
     position: fixed;
     width: 60%; left: 0;
-    top: 28px; bottom: 140px;
+    top: 28px; bottom: 200px;
     z-index: 70;
     border: none;
     border-right: 1px solid var(--border);
@@ -1188,7 +1188,7 @@ body {
   /* ── Detail panel: bottom sheet above minimap ── */
   .detail-panel {
     position: fixed;
-    top: auto; right: 0; left: 0; bottom: 140px;
+    top: auto; right: 0; left: 0; bottom: 200px;
     width: 100%;
     max-height: 40vh;
     overflow-y: auto;
@@ -1225,7 +1225,7 @@ body {
   .detail-close { top: 10px; right: 10px; font-size: 18px; padding: 6px 10px; min-width: 36px; min-height: 36px; }
 
   /* ── Alt filter ── */
-  .alt-filter { width: calc(100% - 8px); left: 4px; transform: none; bottom: 148px; }
+  .alt-filter { width: calc(100% - 8px); left: 4px; transform: none; bottom: 208px; }
   .alt-filter-row input[type="range"]::-webkit-slider-thumb { width: 24px; height: 24px; }
   .alt-filter-row input[type="range"]::-moz-range-thumb { width: 24px; height: 24px; }
   .alt-filter-row input[type="range"] { height: 4px; }
