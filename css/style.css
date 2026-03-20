@@ -567,7 +567,7 @@ body {
 .watchlist-panel {
   position: absolute;
   top: 46px;
-  right: 8px;
+  right: 336px;
   width: 280px;
   background: var(--panel);
   border: 1px solid var(--border);

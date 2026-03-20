@@ -346,7 +346,6 @@ function passesWatchlist(ac) {
 }
 
 function toggleWatchlistPanel() {
-  document.getElementById('schedulePanel').classList.remove('visible');
   document.getElementById('settingsPanel').classList.remove('visible');
   const panel = document.getElementById('watchlistPanel');
   panel.classList.toggle('visible');
@@ -494,7 +493,6 @@ function removeScheduleEntry(id) {
 }
 
 function toggleSchedulePanel() {
-  document.getElementById('watchlistPanel').classList.remove('visible');
   document.getElementById('settingsPanel').classList.remove('visible');
   const panel = document.getElementById('schedulePanel');
   panel.classList.toggle('visible');
@@ -635,7 +633,7 @@ function updateScheduleRoutes() {
           ? Cesium.Color.fromCssColorString('#00b4d8').withAlpha(0.5)
           : Cesium.Color.fromCssColorString('#555555').withAlpha(0.25);
 
-    const width = isOnboard ? 4 : isLive ? 3 : 2;
+    const width = isOnboard ? 6 : isLive ? 5 : 3;
 
     // Build a TRUE great-circle arc with altitude using Cesium geodesic
     const cruiseAlt = 10000; // meters (~FL330)
@@ -683,48 +681,48 @@ function updateScheduleRoutes() {
     });
     scheduleRouteEntities.push(groundEntity);
 
-    // Departure airport marker
+    // Departure marker — offset left to avoid overlap
     const depMarker = viewer.entities.add({
       position: Cesium.Cartesian3.fromDegrees(depApt.lon, depApt.lat, 200),
-      point: { pixelSize: 8, color: Cesium.Color.fromCssColorString('#00ff88'), outlineColor: Cesium.Color.WHITE, outlineWidth: 2, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+      point: { pixelSize: 7, color: Cesium.Color.fromCssColorString('#00ff88'), outlineColor: Cesium.Color.WHITE, outlineWidth: 1, disableDepthTestDistance: Number.POSITIVE_INFINITY },
       label: {
-        text: `${depApt.icao}\nDEP ${s.flightNumber}`,
-        font: '10px JetBrains Mono',
+        text: `${depApt.icao} DEP`,
+        font: '9px JetBrains Mono',
         fillColor: Cesium.Color.fromCssColorString('#00ff88'),
         outlineColor: Cesium.Color.BLACK, outlineWidth: 2,
         style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-        pixelOffset: new Cesium.Cartesian2(0, -20),
+        pixelOffset: new Cesium.Cartesian2(-60, -14),
+        horizontalOrigin: Cesium.HorizontalOrigin.RIGHT,
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
         backgroundColor: Cesium.Color.fromCssColorString('rgba(0,0,0,0.7)'),
-        showBackground: true, backgroundPadding: new Cesium.Cartesian2(6, 3),
+        showBackground: true, backgroundPadding: new Cesium.Cartesian2(5, 2),
       },
     });
     scheduleRouteEntities.push(depMarker);
 
-    // Arrival airport marker with ETA
+    // Arrival marker — offset right, with ETA
     const depTime = new Date(s.dateTime);
     const dist = haversineDistance(depApt.lat, depApt.lon, arrApt.lat, arrApt.lon);
-    const estHours = dist / 850; // ~850 km/h cruise
-    const eta = new Date(depTime.getTime() + estHours * 3600000);
-    const etaStr = eta.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const timeToLanding = Math.max(0, eta.getTime() - Date.now());
+    const estHours = dist / 850;
+    const timeToLanding = Math.max(0, new Date(depTime.getTime() + estHours * 3600000).getTime() - Date.now());
     const hoursLeft = Math.floor(timeToLanding / 3600000);
     const minsLeft = Math.floor((timeToLanding % 3600000) / 60000);
-    const etaCountdown = timeToLanding > 0 ? `ETA ${hoursLeft}h${minsLeft}m` : 'ARRIVED';
+    const etaCountdown = timeToLanding > 0 ? `${hoursLeft}h${minsLeft}m` : 'ARRIVED';
 
     const arrMarker = viewer.entities.add({
       position: Cesium.Cartesian3.fromDegrees(arrApt.lon, arrApt.lat, 200),
-      point: { pixelSize: 8, color: Cesium.Color.fromCssColorString('#DAA520'), outlineColor: Cesium.Color.WHITE, outlineWidth: 2, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+      point: { pixelSize: 7, color: Cesium.Color.fromCssColorString('#DAA520'), outlineColor: Cesium.Color.WHITE, outlineWidth: 1, disableDepthTestDistance: Number.POSITIVE_INFINITY },
       label: {
-        text: `${arrApt.icao}\nARR ${s.flightNumber}\n${etaCountdown}`,
-        font: '10px JetBrains Mono',
+        text: `${arrApt.icao} ARR  ${etaCountdown}`,
+        font: '9px JetBrains Mono',
         fillColor: Cesium.Color.fromCssColorString('#DAA520'),
         outlineColor: Cesium.Color.BLACK, outlineWidth: 2,
         style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-        pixelOffset: new Cesium.Cartesian2(0, -20),
+        pixelOffset: new Cesium.Cartesian2(12, -14),
+        horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
         backgroundColor: Cesium.Color.fromCssColorString('rgba(0,0,0,0.7)'),
-        showBackground: true, backgroundPadding: new Cesium.Cartesian2(6, 3),
+        showBackground: true, backgroundPadding: new Cesium.Cartesian2(5, 2),
       },
     });
     scheduleRouteEntities.push(arrMarker);
@@ -1289,7 +1287,7 @@ async function drawRouteForAircraft(ac, color) {
     const routeLine = viewer.entities.add({
       polyline: {
         positions: Cesium.Cartesian3.fromDegreesArrayHeights(positions),
-        width: 3,
+        width: 5,
         material: new Cesium.PolylineGlowMaterialProperty({
           glowPower: 0.25,
           color: Cesium.Color.fromCssColorString(lineColor),
