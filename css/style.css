@@ -460,7 +460,7 @@ body {
 /* ─── Altitude Legend ─── */
 .alt-legend {
   position: absolute;
-  bottom: 50px;
+  bottom: 110px;
   right: 8px;
   background: var(--panel);
   border: 1px solid var(--border);
@@ -607,8 +607,8 @@ body {
 .watchlist-panel {
   position: absolute;
   top: 46px;
-  right: 270px;
-  width: 280px;
+  left: 8px;
+  width: 300px;
   background: var(--panel);
   border: 1px solid var(--border);
   padding: 0;
@@ -690,8 +690,8 @@ body {
 .schedule-panel {
   position: absolute;
   top: 46px;
-  right: 560px;
-  width: 320px;
+  right: 262px;
+  width: 260px;
   background: var(--panel);
   border: 1px solid var(--border);
   padding: 0;
@@ -932,7 +932,7 @@ body {
 /* ─── Conflict Legend ─── */
 .conflict-legend {
   position: absolute;
-  bottom: 155px;
+  bottom: 50px;
   right: 8px;
   background: var(--panel);
   border: 1px solid rgba(255, 50, 50, 0.3);

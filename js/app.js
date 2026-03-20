@@ -980,8 +980,9 @@ function tryAutoLogin() {
   }
   loadSchedule();
   renderSchedulePanel();
-  // Schedule panel always visible on load
+  // Schedule and watchlist panels always visible on load
   document.getElementById('schedulePanel').classList.add('visible');
+  document.getElementById('watchlistPanel').classList.add('visible');
 
   if (token) {
     initApp();
