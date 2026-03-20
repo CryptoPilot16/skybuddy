@@ -1285,15 +1285,17 @@ async function drawRouteForAircraft(ac, color) {
       const interpLon = Cesium.Math.toDegrees(point.longitude);
       const interpLat = Cesium.Math.toDegrees(point.latitude);
 
-      // Altitude profile: smooth parabolic arc visible from globe view
-      // Scale arc height based on distance (longer routes = higher arcs)
-      const arcHeight = Math.max(alt, Math.min(segDist * 8, 200000)); // up to 200km for long routes
-      const arcFactor = 4 * t * (1 - t); // parabola peaking at midpoint
-      let segAlt = arcHeight * arcFactor;
-      // Ensure takeoff/landing at ground level
-      if (w === 0 && t < 0.05) segAlt *= (t / 0.05);
-      if (w === waypoints.length - 2 && t > 0.95) segAlt *= ((1 - t) / 0.05);
-      positions.push(interpLon, interpLat, Math.max(segAlt, 100));
+      // Altitude profile: realistic climb/cruise/descend at aircraft's actual altitude
+      let segAlt = alt;
+      if (w === 0) {
+        // First segment: climb from ground to cruise
+        segAlt = t < 0.15 ? alt * (t / 0.15) : alt;
+      }
+      if (w === waypoints.length - 2) {
+        // Last segment: descend from cruise to ground
+        segAlt = t > 0.8 ? alt * ((1 - t) / 0.2) : alt;
+      }
+      positions.push(interpLon, interpLat, Math.max(segAlt, 50));
       groundPositions.push(interpLon, interpLat, 50);
     }
 
