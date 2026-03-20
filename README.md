@@ -7,35 +7,48 @@ Real-time 3D flight tracking on an interactive globe. Track specific airlines, v
 ## Features
 
 - **3D Globe** — Cesium.js with terrain, atmosphere, and day/night lighting
-- **3D Aircraft Models** — Type-matched GLB models (747, 777, wide-body, narrow-body) with Kalitta Air livery
-- **Airline Watchlist** — Filter to specific airlines by callsign prefix (e.g. `CKS` for Kalitta Air, `FDX` for FedEx)
-- **Aircraft Type Detection** — Identifies B744, B77W, etc. from ADSB.lol data and loads the correct 3D model
-- **Dual Data Sources** — ADSB.lol (primary) + OpenSky Network (fallback), automatic failover
+- **3D Aircraft Models** — Type-matched GLB models (B744, B748, B772, B773, B738, A320, A333) with custom Kalitta Air livery on 747s
+- **Airline Watchlist** — Filter to specific airlines by callsign prefix (e.g. `CKS` for Kalitta Air, `GTI` for Atlas Air)
+- **Aircraft Type Detection** — Identifies aircraft type from ADSB.lol `t` field and loads the correct 3D model
+- **Triple Data Sources** — ADSB.lol (primary) + airplanes.live (supplementary) + OpenSky Network (fallback)
+- **Flight Routes** — Real flight plan data from VRS Standing Data API with 3D parabolic arc visualization
+- **Schedule System** — Personal flight schedule with ETA countdown, multi-leg support, and AI-powered screenshot import (Claude Vision)
 - **Click-to-Select** — Detail panel with altitude, speed, heading, vertical rate, aircraft type, ICAO hex, coordinates
-- **Camera Tracking** — Lock camera to follow a selected aircraft
-- **Flight Trails** — Accumulated path history
+- **Camera Tracking** — Lock camera to follow a selected aircraft with side-view zoom option
+- **Flight Trails** — Accumulated path history with color-coded altitude
 - **Flight Prediction** — 60-second heading vector projection
-- **Airport Overlay** — 40+ major international airports with ICAO labels
+- **Airport Overlay** — 100+ airports with ICAO labels
+- **Conflict Zones** — War zone overlay with automatic avoidance filter
 - **Altitude Filter** — Dual-range slider to filter by altitude band
 - **Search** — Filter by callsign, ICAO hex, or country
-- **Keyboard Shortcuts** — `L` labels · `T` trails · `P` predict · `A` airports · `F` alt filter · `W` watchlist · `H` home · `R` refresh
+- **Enhanced Labels** — Callsign, type, flight level, and origin→destination visible from globe altitude
+- **Minimap** — World coastline overview with aircraft positions
+- **Keyboard Shortcuts** — `L` labels · `T` trails · `P` predict · `A` airports · `F` alt filter · `W` watchlist · `S` schedule · `C` conflicts · `N` north-up · `H` home · `R` refresh
 
 ## Setup
 
 1. Get a free Cesium Ion token at [ion.cesium.com/tokens](https://ion.cesium.com/tokens)
-2. Open `index.html` in a browser (or serve via any static file server)
-3. Enter your Cesium token and optionally OpenSky credentials
-4. The watchlist defaults to Kalitta Air (`CKS`) — add more prefixes as needed
+2. Create a `.env` file with your tokens (see below)
+3. Run `./gen-env.sh` to generate `env.js`
+4. Serve with any static file server (or open `index.html` directly)
 
-### Optional: Environment Config
+### Environment Config
 
-Create `env.js` to auto-fill your Cesium token:
+Create `.env` in the project root:
 
-```js
-window.ENV = {
-  CESIUM_ION_TOKEN: 'your-token-here'
-};
 ```
+CESIUM_ION_TOKEN=your-cesium-token
+ANTHROPIC_API_KEY=your-claude-api-key
+OPENSKY_USER=
+OPENSKY_PASS=
+```
+
+Then run:
+```bash
+./gen-env.sh
+```
+
+The Anthropic API key enables the schedule screenshot import feature (Claude Vision parses crew schedule photos into flight legs).
 
 ## Project Structure
 
@@ -45,14 +58,20 @@ skybuddy/
 ├── css/style.css       # All styles (HUD, panels, controls, responsive)
 ├── js/app.js           # Application logic (data fetch, globe, UI)
 ├── assets/
-│   ├── b747.glb        # Boeing 747-400F model (Kalitta livery)
-│   ├── b777.glb        # Boeing 777F model
-│   ├── wide.glb        # Generic wide-body (A330/787/767)
-│   ├── narrow.glb      # Generic narrow-body (737/A320)
+│   ├── b744.glb        # Boeing 747-400 (Kalitta Air livery)
+│   ├── b748.glb        # Boeing 747-8
+│   ├── b772.glb        # Boeing 777-200
+│   ├── b773.glb        # Boeing 777-300
+│   ├── b738.glb        # Boeing 737-800
+│   ├── a320.glb        # Airbus A320 (generic narrow-body)
+│   ├── a333.glb        # Airbus A330-300 (generic wide-body)
+│   ├── world.json      # Simplified coastline polygons for minimap
 │   ├── favicon.svg     # Browser favicon
 │   └── icon-180.png    # PWA icon
+├── .env                # Environment variables (not committed)
+├── gen-env.sh          # Generates env.js from .env
+├── env.js              # Auto-generated config (not committed)
 ├── manifest.json       # PWA manifest
-├── env.js              # Environment config (not committed)
 └── README.md
 ```
 
@@ -60,7 +79,10 @@ skybuddy/
 
 - **Cesium.js 1.114** — 3D globe rendering, terrain, camera, entity system
 - **ADSB.lol API** — Live ADS-B data with aircraft type identification
+- **airplanes.live API** — Supplementary ADS-B data for wider coverage
 - **OpenSky Network API** — Fallback ADS-B data source
+- **VRS Standing Data** — Flight route/plan data (free, no auth)
+- **Claude Vision API** — Schedule screenshot parsing (optional)
 - **Vanilla JS** — No framework, no build step, no npm
 
 ## Data Sources
@@ -68,7 +90,9 @@ skybuddy/
 | Source | Rate Limit | Aircraft Type | Auth |
 |--------|-----------|---------------|------|
 | ADSB.lol | Generous | Yes (`t` field) | None |
+| airplanes.live | Generous | Yes | None |
 | OpenSky | ~100/day anon, ~4000/day auth | No | Optional |
+| VRS Standing Data | Unlimited (CDN) | N/A | None |
 
 ## Deployment
 

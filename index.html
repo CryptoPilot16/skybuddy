@@ -95,6 +95,9 @@
       <div class="detail-field"><label>Longitude</label><div><span class="val" id="detLon">---</span></div></div>
       <div class="detail-field"><label>ICAO24</label><div><span class="val" id="detIcao">---</span></div></div>
       <div class="detail-field"><label>Type</label><div><span class="val accent" id="detType">---</span></div></div>
+      <div class="detail-field"><label>Registration</label><div><span class="val accent" id="detReg">---</span></div></div>
+      <div class="detail-field detail-wide"><label>Owner</label><div><span class="val" id="detOwner">---</span></div></div>
+      <div class="detail-field detail-wide"><label>Manufacturer</label><div><span class="val" id="detMfg">---</span></div></div>
       <div class="detail-field"><label>On Ground</label><div><span class="val" id="detGnd">---</span></div></div>
       <div class="detail-field detail-wide"><label>Destination (est.)</label><div><span class="val accent" id="detDest">---</span></div></div>
       <div class="detail-field detail-wide"><label>ETA</label><div><span class="val accent" id="detEta">---</span></div></div>
@@ -150,6 +153,11 @@
       <label class="sched-onboard-label"><input type="checkbox" id="schedOnboard"> I'm onboard</label>
       <button class="wl-add-btn" onclick="addScheduleEntry()">+</button>
     </div>
+    <div class="sched-import-row">
+      <input type="file" id="schedScreenshot" accept="image/*" style="display:none" onchange="importScheduleScreenshot(this)">
+      <button class="wl-toggle-btn sched-import-btn" onclick="document.getElementById('schedScreenshot').click()">Import from Image</button>
+    </div>
+    <div class="sched-import-status" id="schedImportStatus" style="display:none;"></div>
     <div class="sched-items" id="scheduleItems"></div>
   </div>
 
@@ -206,41 +214,41 @@
 
   <!-- Bottom Controls -->
   <div class="bottom-bar">
-    <button class="ctrl-btn" id="btnSchedule" onclick="toggleSchedulePanel()">Schedule</button>
-    <button class="ctrl-btn" id="btnWatchlist" onclick="toggleWatchlistPanel()">Watchlist</button>
-    <button class="ctrl-btn active" id="btnLabels" onclick="toggleLabels()">Labels</button>
-    <button class="ctrl-btn" id="btnPaths" onclick="togglePaths()">Trails</button>
-    <button class="ctrl-btn" id="btnConflicts" onclick="toggleConflicts()">Conflicts</button>
-    <button class="ctrl-btn" onclick="refreshData()">↻ Refresh</button>
+    <button class="ctrl-btn" id="btnSchedule" onclick="toggleSchedulePanel()"><span class="btn-icon">✈</span><span class="btn-label">Schedule</span></button>
+    <button class="ctrl-btn" id="btnWatchlist" onclick="toggleWatchlistPanel()"><span class="btn-icon">★</span><span class="btn-label">Watch</span></button>
+    <button class="ctrl-btn active" id="btnLabels" onclick="toggleLabels()"><span class="btn-icon">Aa</span><span class="btn-label">Labels</span></button>
+    <button class="ctrl-btn" id="btnPaths" onclick="togglePaths()"><span class="btn-icon">╌</span><span class="btn-label">Trails</span></button>
+    <button class="ctrl-btn" id="btnConflicts" onclick="toggleConflicts()"><span class="btn-icon">⚠</span><span class="btn-label">Conflicts</span></button>
+    <button class="ctrl-btn" onclick="refreshData()"><span class="btn-icon">↻</span><span class="btn-label">Refresh</span></button>
   </div>
 </div>
 
 <!-- Setup Panel (hidden, credentials loaded from localStorage) -->
 <div class="setup-panel" id="setupPanel" style="display:none;">
-  <input type="hidden" id="cesiumToken">
-  <input type="hidden" id="osUser">
-  <input type="hidden" id="osPass">
 </div>
 
 <!-- Settings Panel -->
 <div class="settings-panel" id="settingsPanel">
   <div class="wl-header">
-    <span class="wl-title">SETTINGS</span>
+    <span class="wl-title">MY SCHEDULE</span>
     <button class="panel-close-btn" onclick="toggleSettingsPanel()">✕</button>
   </div>
-  <div class="input-group">
-    <label>Cesium Ion Access Token</label>
-    <input type="text" id="settingsCesiumToken" placeholder="eyJhbGci...">
+  <div class="sched-add-row">
+    <input type="text" class="sched-input" id="settingsSchedFlight" placeholder="Callsign (CKS401)">
+    <input type="text" class="sched-input sched-input-sm" id="settingsSchedDep" placeholder="DEP">
+    <input type="text" class="sched-input sched-input-sm" id="settingsSchedArr" placeholder="ARR">
   </div>
-  <div class="input-group">
-    <label>OpenSky Username (optional)</label>
-    <input type="text" id="settingsOsUser" placeholder="anonymous">
+  <div class="sched-add-row">
+    <input type="datetime-local" class="sched-input sched-input-dt" id="settingsSchedTime">
+    <label class="sched-onboard-label"><input type="checkbox" id="settingsSchedOnboard"> I'm onboard</label>
+    <button class="wl-add-btn" onclick="addScheduleFromSettings()">+</button>
   </div>
-  <div class="input-group">
-    <label>OpenSky Password (optional)</label>
-    <input type="password" id="settingsOsPass" placeholder="optional">
+  <div class="sched-import-row">
+    <input type="file" id="settingsSchedScreenshot" accept="image/*" style="display:none" onchange="importScheduleScreenshot(this)">
+    <button class="wl-toggle-btn sched-import-btn" onclick="document.getElementById('settingsSchedScreenshot').click()">Import from Image</button>
   </div>
-  <button class="wl-toggle-btn" onclick="saveSettings()">Save &amp; Reload</button>
+  <div class="sched-import-status" id="schedImportStatus" style="display:none;"></div>
+  <div class="sched-items" id="settingsScheduleItems"></div>
   <div class="setup-note" style="margin-top:12px; text-align:center;">
     Shortcuts: <strong>L</strong> labels · <strong>T</strong> trails · <strong>A</strong> airports · <strong>C</strong> conflicts · <strong>R</strong> refresh · <strong>Shift+R</strong> routes · <strong>H</strong> home · <strong>Esc</strong> close
   </div>
