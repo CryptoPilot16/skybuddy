@@ -183,6 +183,14 @@
     <div class="alt-row"><div class="alt-dot" style="background:rgba(255,159,28,0.6)"></div><span style="color:var(--text-dim)">60s heading vector</span></div>
   </div>
 
+  <!-- Conflict Legend -->
+  <div class="conflict-legend" id="conflictLegend" style="display:none;">
+    <div class="conflict-legend-title">Conflict Zones</div>
+    <div class="alt-row"><div class="alt-dot" style="background:rgba(255,50,50,0.9)"></div><span style="color:var(--text-dim)">Active war</span></div>
+    <div class="alt-row"><div class="alt-dot" style="background:rgba(255,50,50,0.6)"></div><span style="color:var(--text-dim)">High intensity</span></div>
+    <div class="alt-row"><div class="alt-dot" style="background:rgba(255,50,50,0.35)"></div><span style="color:var(--text-dim)">Medium intensity</span></div>
+  </div>
+
   <!-- Webcam PiP -->
   <div class="webcam-pip" id="webcamPip"></div>
 
@@ -200,6 +208,8 @@
     <button class="ctrl-btn" id="btnPaths" onclick="togglePaths()">Trails</button>
     <button class="ctrl-btn" id="btnRoutes" onclick="cycleRouteMode()">Routes</button>
     <button class="ctrl-btn" id="btnAirports" onclick="toggleAirports()">Airports</button>
+    <button class="ctrl-btn" id="btnConflicts" onclick="toggleConflicts()">Conflicts</button>
+    <button class="ctrl-btn" id="btnConflictFilter" onclick="toggleConflictFilter()">War Filter</button>
     <button class="ctrl-btn" onclick="flyHome()">Home</button>
     <button class="ctrl-btn" onclick="refreshData()">↻ Refresh</button>
     <button class="ctrl-btn" onclick="toggleSettingsPanel()">Settings</button>
@@ -233,7 +243,7 @@
   </div>
   <button class="wl-toggle-btn" onclick="saveSettings()">Save &amp; Reload</button>
   <div class="setup-note" style="margin-top:12px; text-align:center;">
-    Shortcuts: <strong>L</strong> labels · <strong>T</strong> trails · <strong>A</strong> airports · <strong>R</strong> refresh · <strong>Shift+R</strong> routes · <strong>H</strong> home · <strong>Esc</strong> close
+    Shortcuts: <strong>L</strong> labels · <strong>T</strong> trails · <strong>A</strong> airports · <strong>C</strong> conflicts · <strong>R</strong> refresh · <strong>Shift+R</strong> routes · <strong>H</strong> home · <strong>Esc</strong> close
   </div>
   <div class="setup-footer">SKYBUDDY v1.1.0</div>
 </div>

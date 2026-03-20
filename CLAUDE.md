@@ -47,16 +47,20 @@ Static site, no build step, no framework.
 - Camera tracking mode (follows selected aircraft)
 - Flight trail accumulation
 - Flight prediction vectors (60s heading projection)
-- Airport overlay (40 major intl airports with ICAO labels)
-- Altitude filter (dual-slider, min/max range)
+- Airport overlay (100+ airports with ICAO labels, name on hover/click)
 - Dual data sources: ADSB.lol (primary, has aircraft type) + OpenSky (fallback)
 - Searchable aircraft list (callsign, ICAO, country)
 - Viewport-scoped API calls
-- Credential persistence in localStorage
-- Keyboard shortcuts (L/T/P/A/F/H/R/Shift+R/G/W/Esc)
+- Credential persistence in localStorage (auto-launch, settings in panel)
+- Keyboard shortcuts (L/T/A/C/R/Shift+R/H/Esc)
 - Responsive design (desktop + mobile)
 - Notification toasts
 - PWA manifest with 180px icon
+- Route toggle (selected/all/off) with real VRS flight plan data
+- Schedule system with ETA countdown, departure times, multi-leg routes
+- Enhanced world-view labels: callsign, type, FL, origin→destination
+- 3D route arcs with altitude profile and ground shadow
+- Green/gold highlight for scheduled/onboard aircraft
 
 ## Roadmap / Next Steps
 - [x] Flight route prediction using heading + speed vectors
@@ -72,6 +76,9 @@ Static site, no build step, no framework.
 - [x] Enhanced labels: callsign, type, FL, origin→destination above aircraft
 - [x] Side-view zoom camera (profile view of aircraft)
 - [x] Airport webcam PiP on approach/departure (worldcams.tv integration)
+- [x] Schedule system with ETA countdown and multi-leg support (default: JFK→PANC→RJAA)
+- [x] Enhanced world-view labels visible from globe altitude
+- [x] Conflict zones overlay with war zone avoidance filter
 - [ ] Backend proxy (Node.js) to hide OpenSky credentials
 - [ ] WebSocket or SSE push instead of polling
 - [ ] Heatmap mode (traffic density)

@@ -836,6 +836,27 @@ body {
   margin-bottom: 3px; font-size: 7px;
 }
 
+/* ─── Conflict Legend ─── */
+.conflict-legend {
+  position: absolute;
+  bottom: 155px;
+  right: 8px;
+  background: var(--panel);
+  border: 1px solid rgba(255, 50, 50, 0.3);
+  padding: 6px 10px;
+  font-size: 8px;
+}
+.conflict-legend-title {
+  color: rgba(255, 80, 80, 0.9); text-transform: uppercase; letter-spacing: 1.5px;
+  margin-bottom: 3px; font-size: 7px;
+}
+
+#btnConflicts.active, #btnConflictFilter.active {
+  background: rgba(255, 50, 50, 0.2);
+  border-color: rgba(255, 50, 50, 0.5);
+  color: #ff5050;
+}
+
 /* ─── Airport Labels ─── */
 .source-indicator {
   font-size: 8px; margin-left: 4px; opacity: 0.6;
@@ -1201,6 +1222,7 @@ body {
 
   /* Prediction legend: hide on mobile */
   .prediction-legend { display: none !important; }
+  .conflict-legend { display: none !important; }
 
   /* Scanline: disable on mobile for performance */
   #hud::before { display: none; }

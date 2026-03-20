@@ -34,6 +34,9 @@ let routeCache = {}; // callsign → route data from VRS API
 let schedule = []; // user's flight schedule
 let scheduleMatches = new Map(); // scheduleId → icao24
 let scheduleRouteEntities = []; // Cesium entities for schedule route lines
+let showConflicts = false; // conflict zone overlay toggle
+let conflictDataSource = null; // Cesium GeoJsonDataSource for conflict zones
+let conflictFilterActive = false; // filter aircraft from conflict countries
 
 // ─── Config ───
 const CONFIG = {
@@ -159,6 +162,58 @@ const AIRLINES = {
   'CKS': { name: 'Kalitta Air', color: '#CC2222' },
   'GTI': { name: 'Atlas Air', color: '#1E90FF' },
 };
+
+// ─── Conflict Zones ───
+// Countries with active armed conflicts (source: ACLED/UCDP/Conflictly)
+// name must match the GeoJSON country name from johan/world.geo.json
+const CONFLICT_COUNTRIES = [
+  { name: 'Ukraine', iso: 'UKR', lat: 48.38, lon: 31.17, severity: 'war' },
+  { name: 'Russia', iso: 'RUS', lat: 61.52, lon: 105.32, severity: 'war' },
+  { name: 'Israel', iso: 'ISR', lat: 31.05, lon: 34.85, severity: 'war' },
+  { name: 'Palestine', iso: 'PSE', lat: 31.95, lon: 35.23, severity: 'war' },
+  { name: 'Sudan', iso: 'SDN', lat: 12.86, lon: 30.22, severity: 'war' },
+  { name: 'Myanmar', iso: 'MMR', lat: 21.91, lon: 95.96, severity: 'war' },
+  { name: 'Syria', iso: 'SYR', lat: 34.80, lon: 39.00, severity: 'high' },
+  { name: 'Yemen', iso: 'YEM', lat: 15.55, lon: 48.52, severity: 'high' },
+  { name: 'Somalia', iso: 'SOM', lat: 5.15, lon: 46.20, severity: 'high' },
+  { name: 'Ethiopia', iso: 'ETH', lat: 9.15, lon: 40.49, severity: 'high' },
+  { name: 'Democratic Republic of the Congo', iso: 'COD', lat: -4.04, lon: 21.76, severity: 'high' },
+  { name: 'Nigeria', iso: 'NGA', lat: 9.08, lon: 7.49, severity: 'high' },
+  { name: 'Mali', iso: 'MLI', lat: 17.57, lon: -4.00, severity: 'high' },
+  { name: 'Burkina Faso', iso: 'BFA', lat: 12.24, lon: -1.56, severity: 'high' },
+  { name: 'Niger', iso: 'NER', lat: 17.61, lon: 8.08, severity: 'medium' },
+  { name: 'Afghanistan', iso: 'AFG', lat: 33.94, lon: 67.71, severity: 'medium' },
+  { name: 'Iraq', iso: 'IRQ', lat: 33.22, lon: 43.68, severity: 'medium' },
+  { name: 'Libya', iso: 'LBY', lat: 26.34, lon: 17.23, severity: 'medium' },
+  { name: 'Haiti', iso: 'HTI', lat: 18.97, lon: -72.29, severity: 'medium' },
+  { name: 'Colombia', iso: 'COL', lat: 4.57, lon: -74.30, severity: 'medium' },
+  { name: 'Mozambique', iso: 'MOZ', lat: -18.67, lon: 35.53, severity: 'medium' },
+  { name: 'Cameroon', iso: 'CMR', lat: 7.37, lon: 12.35, severity: 'medium' },
+  { name: 'Central African Republic', iso: 'CAF', lat: 6.61, lon: 20.94, severity: 'medium' },
+  { name: 'South Sudan', iso: 'SSD', lat: 6.88, lon: 31.31, severity: 'high' },
+  { name: 'Lebanon', iso: 'LBN', lat: 33.85, lon: 35.86, severity: 'high' },
+  { name: 'Chad', iso: 'TCD', lat: 15.45, lon: 18.73, severity: 'medium' },
+  { name: 'Pakistan', iso: 'PAK', lat: 30.38, lon: 69.35, severity: 'medium' },
+];
+
+// Map origin_country (from OpenSky) to conflict status
+const CONFLICT_COUNTRY_NAMES = new Set(CONFLICT_COUNTRIES.map(c => c.name.toUpperCase()));
+// Also map common variations used by OpenSky
+const CONFLICT_COUNTRY_ALIASES = {
+  'CONGO (KINSHASA)': true, 'CONGO (DEM. REP.)': true, 'DR CONGO': true, 'DRC': true,
+  'REPUBLIC OF SUDAN': true, 'REPUBLIC OF SOUTH SUDAN': true,
+  'SYRIAN ARAB REPUBLIC': true, 'ISLAMIC REPUBLIC OF PAKISTAN': true,
+  'FEDERAL REPUBLIC OF NIGERIA': true, 'STATE OF PALESTINE': true,
+  'REPUBLIC OF HAITI': true, 'REPUBLIC OF COLOMBIA': true,
+  'REPUBLIC OF CAMEROON': true, 'REPUBLIC OF CHAD': true,
+  'REPUBLIC OF MALI': true, 'REPUBLIC OF NIGER': true,
+};
+
+function isConflictCountry(countryName) {
+  if (!countryName) return false;
+  const upper = countryName.toUpperCase().trim();
+  return CONFLICT_COUNTRY_NAMES.has(upper) || CONFLICT_COUNTRY_ALIASES[upper] === true;
+}
 
 // ─── Airport Webcams (YouTube live embed IDs) ───
 const AIRPORT_CAMS = {
@@ -311,10 +366,11 @@ function loadSchedule() {
     if (saved) {
       schedule = JSON.parse(saved);
     } else {
+      // Default demo schedule: Kalitta cargo run JFK→PANC→RJAA
+      const now = Date.now();
       schedule = [
-        { id: 'demo1', flightNumber: 'CKS401', departure: 'KYIP', arrival: 'PANC', dateTime: new Date().toISOString(), onboard: true, notes: 'Kalitta cargo run' },
-        { id: 'demo2', flightNumber: 'GTI8520', departure: 'KJFK', arrival: 'EDDF', dateTime: new Date(Date.now() + 3600000 * 4).toISOString(), onboard: false, notes: 'Atlas Air transatlantic' },
-        { id: 'demo3', flightNumber: 'FDX1234', departure: 'KMEM', arrival: 'KLAX', dateTime: new Date(Date.now() + 3600000 * 8).toISOString(), onboard: false, notes: 'FedEx domestic' },
+        { id: 'demo1', flightNumber: 'CKS241', departure: 'KJFK', arrival: 'PANC', dateTime: new Date(now).toISOString(), onboard: true, notes: 'Leg 1: JFK to Anchorage' },
+        { id: 'demo2', flightNumber: 'CKS241', departure: 'PANC', arrival: 'RJAA', dateTime: new Date(now + 3600000 * 7).toISOString(), onboard: false, notes: 'Leg 2: Anchorage to Narita' },
       ];
       saveSchedule();
     }
@@ -478,28 +534,111 @@ function updateScheduleRoutes() {
   scheduleRouteEntities.forEach(e => viewer.entities.remove(e));
   scheduleRouteEntities = [];
 
-  schedule.forEach(s => {
+  schedule.forEach((s, idx) => {
     const depApt = AIRPORTS.find(a => a.icao === s.departure);
     const arrApt = AIRPORTS.find(a => a.icao === s.arrival);
     if (!depApt || !arrApt) return;
 
     const isLive = scheduleMatches.has(s.id);
     const isOnboard = s.onboard && isLive;
-    const color = isOnboard
-      ? Cesium.Color.fromCssColorString('#DAA520').withAlpha(0.6)
-      : isLive
-        ? Cesium.Color.fromCssColorString('#00ff88').withAlpha(0.4)
-        : Cesium.Color.fromCssColorString('#555555').withAlpha(0.2);
+    const isPast = new Date(s.dateTime) < Date.now() && !isLive;
+    const isFuture = new Date(s.dateTime) > Date.now();
 
-    const entity = viewer.entities.add({
+    // Color: onboard=gold, live=green, future=cyan, past=dim
+    const color = isOnboard
+      ? Cesium.Color.fromCssColorString('#DAA520').withAlpha(0.85)
+      : isLive
+        ? Cesium.Color.fromCssColorString('#00ff88').withAlpha(0.7)
+        : isFuture
+          ? Cesium.Color.fromCssColorString('#00b4d8').withAlpha(0.5)
+          : Cesium.Color.fromCssColorString('#555555').withAlpha(0.25);
+
+    const width = isOnboard ? 4 : isLive ? 3 : 2;
+
+    // Build a great-circle arc with altitude
+    const cruiseAlt = 10000; // meters (~FL330)
+    const steps = 40;
+    const positions = [];
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const lat = depApt.lat + (arrApt.lat - depApt.lat) * t;
+      const lon = depApt.lon + (arrApt.lon - depApt.lon) * t;
+      // Altitude arc: climb, cruise, descend
+      let alt = cruiseAlt;
+      if (t < 0.15) alt = cruiseAlt * (t / 0.15);
+      else if (t > 0.85) alt = cruiseAlt * ((1 - t) / 0.15);
+      positions.push(lon, lat, Math.max(alt, 200));
+    }
+
+    // Main route arc
+    const routeEntity = viewer.entities.add({
       polyline: {
-        positions: Cesium.Cartesian3.fromDegreesArray([depApt.lon, depApt.lat, arrApt.lon, arrApt.lat]),
-        width: isOnboard ? 3 : 2,
-        material: new Cesium.PolylineGlowMaterialProperty({ glowPower: isOnboard ? 0.3 : 0.15, color: color }),
-        clampToGround: false,
+        positions: Cesium.Cartesian3.fromDegreesArrayHeights(positions),
+        width: width,
+        material: new Cesium.PolylineGlowMaterialProperty({
+          glowPower: isOnboard ? 0.4 : 0.2,
+          color: color,
+        }),
       },
     });
-    scheduleRouteEntities.push(entity);
+    scheduleRouteEntities.push(routeEntity);
+
+    // Ground shadow
+    const groundEntity = viewer.entities.add({
+      polyline: {
+        positions: Cesium.Cartesian3.fromDegreesArray([depApt.lon, depApt.lat, arrApt.lon, arrApt.lat]),
+        width: 1.5,
+        material: color.withAlpha(0.15),
+        clampToGround: true,
+      },
+    });
+    scheduleRouteEntities.push(groundEntity);
+
+    // Departure airport marker
+    const depMarker = viewer.entities.add({
+      position: Cesium.Cartesian3.fromDegrees(depApt.lon, depApt.lat, 200),
+      point: { pixelSize: 8, color: Cesium.Color.fromCssColorString('#00ff88'), outlineColor: Cesium.Color.WHITE, outlineWidth: 2, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+      label: {
+        text: `${depApt.icao}\nDEP ${s.flightNumber}`,
+        font: '10px JetBrains Mono',
+        fillColor: Cesium.Color.fromCssColorString('#00ff88'),
+        outlineColor: Cesium.Color.BLACK, outlineWidth: 2,
+        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+        pixelOffset: new Cesium.Cartesian2(0, -20),
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        backgroundColor: Cesium.Color.fromCssColorString('rgba(0,0,0,0.7)'),
+        showBackground: true, backgroundPadding: new Cesium.Cartesian2(6, 3),
+      },
+    });
+    scheduleRouteEntities.push(depMarker);
+
+    // Arrival airport marker with ETA
+    const depTime = new Date(s.dateTime);
+    const dist = haversineDistance(depApt.lat, depApt.lon, arrApt.lat, arrApt.lon);
+    const estHours = dist / 850; // ~850 km/h cruise
+    const eta = new Date(depTime.getTime() + estHours * 3600000);
+    const etaStr = eta.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const timeToLanding = Math.max(0, eta.getTime() - Date.now());
+    const hoursLeft = Math.floor(timeToLanding / 3600000);
+    const minsLeft = Math.floor((timeToLanding % 3600000) / 60000);
+    const etaCountdown = timeToLanding > 0 ? `ETA ${hoursLeft}h${minsLeft}m` : 'ARRIVED';
+
+    const arrMarker = viewer.entities.add({
+      position: Cesium.Cartesian3.fromDegrees(arrApt.lon, arrApt.lat, 200),
+      point: { pixelSize: 8, color: Cesium.Color.fromCssColorString('#DAA520'), outlineColor: Cesium.Color.WHITE, outlineWidth: 2, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+      label: {
+        text: `${arrApt.icao}\nARR ${s.flightNumber}\n${etaCountdown}`,
+        font: '10px JetBrains Mono',
+        fillColor: Cesium.Color.fromCssColorString('#DAA520'),
+        outlineColor: Cesium.Color.BLACK, outlineWidth: 2,
+        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+        pixelOffset: new Cesium.Cartesian2(0, -20),
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        backgroundColor: Cesium.Color.fromCssColorString('rgba(0,0,0,0.7)'),
+        showBackground: true, backgroundPadding: new Cesium.Cartesian2(6, 3),
+      },
+    });
+    scheduleRouteEntities.push(arrMarker);
   });
 }
 
@@ -688,6 +827,7 @@ function handleKeyboard(e) {
     case 'f': toggleAltFilter(); break;
     case 'w': toggleWatchlistPanel(); break;
     case 's': toggleSchedulePanel(); break;
+    case 'c': toggleConflicts(); break;
     case 'g': if (selectedAc) toggleGpsMode(); break;
     case 'escape':
       if (selectedAc) closeDetail();
@@ -1195,8 +1335,8 @@ function updateGlobe() {
   Object.values(aircraftData).forEach(ac => {
     if (ac.lat == null || ac.lon == null) return;
 
-    // Filter: hide entities that don't pass watchlist, altitude, or search filter
-    if (!passesWatchlist(ac) || !passesAltFilter(ac) || !passesGlobeFilter(ac)) {
+    // Filter: hide entities that don't pass watchlist, altitude, search, or conflict filter
+    if (!passesWatchlist(ac) || !passesAltFilter(ac) || !passesGlobeFilter(ac) || !passesConflictFilter(ac)) {
       if (aircraftEntities[ac.icao]) {
         viewer.entities.remove(aircraftEntities[ac.icao]);
         delete aircraftEntities[ac.icao];
@@ -1278,20 +1418,21 @@ function updateGlobe() {
         },
         label: {
           text: buildLabelText(ac),
-          font: '12px JetBrains Mono',
-          fillColor: Cesium.Color.fromCssColorString('#e0e8f0'),
+          font: '13px JetBrains Mono',
+          fillColor: isOnboardAircraft(ac.icao) ? Cesium.Color.fromCssColorString('#FFD700') : isScheduledAircraft(ac.icao) ? Cesium.Color.fromCssColorString('#00ff88') : Cesium.Color.fromCssColorString('#e0e8f0'),
           outlineColor: Cesium.Color.BLACK,
           outlineWidth: 3,
           style: Cesium.LabelStyle.FILL_AND_OUTLINE,
           pixelOffset: new Cesium.Cartesian2(0, -60),
           verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
           horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
-          scaleByDistance: new Cesium.NearFarScalar(1e4, 1.0, 1.5e7, 0.4),
+          scaleByDistance: new Cesium.NearFarScalar(5e3, 1.2, 2e7, 0.6),
+          translucencyByDistance: new Cesium.NearFarScalar(1e3, 1.0, 5e7, 0.7),
           show: showLabels && !!ac.callsign,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
-          backgroundColor: Cesium.Color.fromCssColorString('rgba(0,0,0,0.65)'),
+          backgroundColor: Cesium.Color.fromCssColorString('rgba(0,0,0,0.75)'),
           showBackground: true,
-          backgroundPadding: new Cesium.Cartesian2(8, 4),
+          backgroundPadding: new Cesium.Cartesian2(8, 5),
         },
       });
       entity._acIcao = ac.icao;
@@ -1360,7 +1501,7 @@ function renderAircraftList() {
   const filter = (document.getElementById('searchBox').value || '').toUpperCase();
 
   const sorted = Object.values(aircraftData)
-    .filter(ac => ac.lat && ac.lon && (watchlistActive ? true : !ac.onGround) && passesWatchlist(ac) && passesAltFilter(ac))
+    .filter(ac => ac.lat && ac.lon && (watchlistActive ? true : !ac.onGround) && passesWatchlist(ac) && passesAltFilter(ac) && passesConflictFilter(ac))
     .filter(ac =>
       !filter ||
       (ac.callsign && ac.callsign.toUpperCase().includes(filter)) ||
@@ -1884,6 +2025,83 @@ function drawAirports() {
   }
 }
 
+// ─── Conflict Zone Overlay ───
+function toggleConflicts() {
+  showConflicts = !showConflicts;
+  document.getElementById('btnConflicts').classList.toggle('active', showConflicts);
+  document.getElementById('conflictLegend').style.display = showConflicts ? 'block' : 'none';
+  if (showConflicts) drawConflicts();
+  else clearConflicts();
+  notify('Conflict zones ' + (showConflicts ? 'on' : 'off'));
+}
+
+function toggleConflictFilter() {
+  conflictFilterActive = !conflictFilterActive;
+  document.getElementById('btnConflictFilter').classList.toggle('active', conflictFilterActive);
+  // Rebuild globe with filter
+  Object.keys(aircraftEntities).forEach(icao => {
+    viewer.entities.remove(aircraftEntities[icao]);
+    delete aircraftEntities[icao];
+  });
+  updateGlobe();
+  renderAircraftList();
+  notify('Conflict filter ' + (conflictFilterActive ? 'ON — showing only conflict-zone aircraft' : 'OFF'));
+}
+
+function passesConflictFilter(ac) {
+  if (!conflictFilterActive) return true;
+  return isConflictCountry(ac.country);
+}
+
+async function drawConflicts() {
+  clearConflicts();
+  try {
+    const geojsonUrl = 'https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json';
+    const conflictNames = new Set(CONFLICT_COUNTRIES.map(c => c.name));
+
+    conflictDataSource = new Cesium.GeoJsonDataSource('conflicts');
+    await conflictDataSource.load(geojsonUrl, {
+      stroke: Cesium.Color.RED.withAlpha(0.6),
+      fill: Cesium.Color.RED.withAlpha(0.15),
+      strokeWidth: 1.5,
+    });
+
+    // Remove non-conflict countries
+    const entities = conflictDataSource.entities.values.slice();
+    for (const entity of entities) {
+      const name = entity.properties && entity.properties.name ?
+        entity.properties.name.getValue() : '';
+      if (!conflictNames.has(name)) {
+        conflictDataSource.entities.remove(entity);
+      } else {
+        // Vary intensity by severity
+        const conflict = CONFLICT_COUNTRIES.find(c => c.name === name);
+        if (conflict && entity.polygon) {
+          const alpha = conflict.severity === 'war' ? 0.25 :
+                        conflict.severity === 'high' ? 0.18 : 0.12;
+          entity.polygon.material = Cesium.Color.RED.withAlpha(alpha);
+          entity.polygon.outline = true;
+          entity.polygon.outlineColor = Cesium.Color.RED.withAlpha(0.5);
+          entity.polygon.height = 0;
+          entity.polygon.classificationType = Cesium.ClassificationType.BOTH;
+        }
+      }
+    }
+
+    viewer.dataSources.add(conflictDataSource);
+  } catch (e) {
+    console.warn('Failed to load conflict zones:', e);
+    notify('Failed to load conflict data', 'error');
+  }
+}
+
+function clearConflicts() {
+  if (conflictDataSource) {
+    viewer.dataSources.remove(conflictDataSource, true);
+    conflictDataSource = null;
+  }
+}
+
 // ─── Airport Webcam PiP ───
 function checkWebcamProximity(ac) {
   if (!ac || !ac.lat || !ac.lon) return;
@@ -2074,6 +2292,28 @@ function renderMinimap() {
       });
       minimapCtx.closePath();
       minimapCtx.fill();
+      minimapCtx.stroke();
+    });
+  }
+
+  // Conflict zone markers on minimap
+  if (showConflicts) {
+    CONFLICT_COUNTRIES.forEach(c => {
+      const cx = (c.lon + 180) / 360 * w;
+      const cy = h / 2 - (c.lat / 90) * (h / 2);
+      const r = c.severity === 'war' ? 8 : c.severity === 'high' ? 6 : 4;
+      const alpha = c.severity === 'war' ? 0.35 : c.severity === 'high' ? 0.25 : 0.15;
+      // Pulsing glow
+      const pulse = 0.7 + 0.3 * Math.sin(Date.now() / 800);
+      minimapCtx.fillStyle = `rgba(255, 50, 50, ${alpha * pulse})`;
+      minimapCtx.beginPath();
+      minimapCtx.arc(cx, cy, r, 0, Math.PI * 2);
+      minimapCtx.fill();
+      // Outer ring
+      minimapCtx.strokeStyle = `rgba(255, 50, 50, ${0.5 * pulse})`;
+      minimapCtx.lineWidth = 0.8;
+      minimapCtx.beginPath();
+      minimapCtx.arc(cx, cy, r + 2, 0, Math.PI * 2);
       minimapCtx.stroke();
     });
   }
