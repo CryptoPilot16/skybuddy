@@ -2084,11 +2084,11 @@ function updateDetailPanel(ac) {
   document.getElementById('detSpeed').textContent = msToKts(ac.velocity);
   document.getElementById('detHdg').textContent = Math.round(ac.heading || 0);
   document.getElementById('detVsi').textContent = msToFpm(ac.vertRate);
-  document.getElementById('detLat').textContent = (ac.lat || 0).toFixed(4);
-  document.getElementById('detLon').textContent = (ac.lon || 0).toFixed(4);
+  const latEl = document.getElementById('detLat'); if (latEl) latEl.textContent = (ac.lat || 0).toFixed(4);
+  const lonEl = document.getElementById('detLon'); if (lonEl) lonEl.textContent = (ac.lon || 0).toFixed(4);
   document.getElementById('detIcao').textContent = ac.icao;
   document.getElementById('detType').textContent = ac.acType || '—';
-  document.getElementById('detGnd').textContent = ac.onGround ? 'YES' : 'NO';
+  const gndEl = document.getElementById('detGnd'); if (gndEl) gndEl.textContent = ac.onGround ? 'YES' : 'NO';
 
   // Populate hexdb-enriched fields if cached, else reset to loading state
   const cached = hexdbCache[ac.icao ? ac.icao.toUpperCase() : ''];
@@ -2618,7 +2618,7 @@ async function drawConflicts() {
     conflictDataSource = new Cesium.GeoJsonDataSource('conflicts');
     await conflictDataSource.load(geojsonUrl, {
       stroke: Cesium.Color.TRANSPARENT,
-      fill: Cesium.Color.TRANSPARENT,
+      fill: Cesium.Color.WHITE.withAlpha(0.004),
       strokeWidth: 0,
     });
 
@@ -2628,25 +2628,26 @@ async function drawConflicts() {
         entity.properties.name.getValue() : '';
       const conflict = CONFLICT_COUNTRIES.find(c => c.name === name);
 
-      // Tag every entity with its country name for hover/click
+      // Tag every entity with its country name for click
       entity._countryName = name;
       entity._isConflict = !!conflict;
 
       if (conflict && entity.polygon) {
-        // Conflict country — red overlay with severity-based alpha
+        // Conflict country — red fill, no outline (click interior only)
         const alpha = conflict.severity === 'war' ? 0.25 :
                       conflict.severity === 'high' ? 0.18 : 0.12;
         entity.polygon.material = Cesium.Color.RED.withAlpha(alpha);
-        entity.polygon.outline = true;
-        entity.polygon.outlineColor = Cesium.Color.RED.withAlpha(0.5);
+        entity.polygon.outline = false;
         entity.polygon.height = 0;
         entity._conflictSeverity = conflict.severity;
       } else if (entity.polygon) {
-        // Non-conflict country — invisible fill, no outline (clickable for name)
-        entity.polygon.material = Cesium.Color.TRANSPARENT;
+        // Non-conflict country — near-invisible fill for click detection
+        entity.polygon.material = Cesium.Color.WHITE.withAlpha(0.004);
         entity.polygon.outline = false;
         entity.polygon.height = 0;
       }
+      // Remove any polyline entities (border lines) — we only want polygon fills
+      if (entity.polyline) entity.polyline.show = false;
     }
 
     // Add conflict country center labels — always visible

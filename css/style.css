@@ -337,8 +337,10 @@ body {
 .detail-panel {
   position: absolute;
   top: 46px;
-  right: 8px;
+  right: 0;
   width: 260px;
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
   background: var(--panel);
   border: 1px solid var(--border);
   padding: 12px;
@@ -605,7 +607,7 @@ body {
 .watchlist-panel {
   position: absolute;
   top: 46px;
-  right: 340px;
+  right: 270px;
   width: 280px;
   background: var(--panel);
   border: 1px solid var(--border);
@@ -688,7 +690,7 @@ body {
 .schedule-panel {
   position: absolute;
   top: 46px;
-  right: 8px;
+  right: 560px;
   width: 320px;
   background: var(--panel);
   border: 1px solid var(--border);
